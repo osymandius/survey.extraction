@@ -4,13 +4,32 @@ library(magrittr)
 
 source("extract_funs.R")
 
-variable_recode <- readxl::read_excel("~/Dropbox/oli backup/Survey extraction/hivdata_survey_datasets.xlsx", sheet = "variable_recode", na = "NA")
-value_recode <- readxl::read_excel("~/Dropbox/oli backup/Survey extraction/hivdata_survey_datasets.xlsx", sheet = "value_recode", na = "NA") %>% type.convert()
+sharepoint_loc <- 
+  "~/Imperial College London/HIV Inference Group - WP - Documents/"
 
-search_vars <- filter(variable_recode, str_detect(variable, "sexbehav"))$var_raw %>%
-  unique()
+ssa_iso <- c(
+  "BDI", "BEN", "BFA", "CIV", "CMR", "COD", "COG", "GMB", "KEN", "LSO", "MLI", 
+  "MOZ", "MWI", "NGA", "SLE", "SWZ", "TCD", "TGO", "ZWE", "AGO", "ETH", "GAB", 
+  "GHA", "GIN", "LBR", "NAM", "NER", "RWA", "SEN", "TZA", "UGA", "ZMB"
+)
 
-ssa_iso <- c("BDI", "BEN", "BFA", "CIV", "CMR", "COD", "COG", "GMB", "KEN", "LSO", "MLI", "MOZ", "MWI", "NGA", "SLE", "SWZ", "TCD", "TGO", "ZWE", "AGO", "ETH", "GAB", "GHA", "GIN", "LBR", "NAM", "NER", "RWA", "SEN", "TZA", "UGA", "ZMB")
+# data directory
+dir_loc <- "~/Dropbox/oli backup/Survey extraction/"
+
+# recoding excel sheet
+recode_xlsx <- file.path(dir_loc, "hivdata_survey_datasets.xlsx")
+variable_recode = readxl::read_excel(
+  recode_xlsx, sheet = "variable_recode", na = "NA"
+)
+value_recode = type.convert(readxl::read_excel(
+  recode_xlsx, sheet = "value_recode", na = "NA"
+))
+
+search_vars <- variable_recode %>% 
+  filter(str_detect(variable, "sexbehav")) %>% 
+  distinct(var_raw) %>% 
+  pull()
+
 
 mrd <- dhs_datasets(fileType = "MR", fileFormat = "FL")
 
@@ -18,11 +37,7 @@ combined_datasets <- dhs_datasets(fileType = "IR", fileFormat = "FL") %>%
   bind_rows(mrd) %>%
   mutate(
     iso3 = dhscc_to_iso3(DHS_CountryCode),
-    survey_id = paste0(
-      iso3,
-      SurveyYear,
-      SurveyType
-    )
+    survey_id = paste0(iso3, SurveyYear, SurveyType)
   ) %>%
   filter(iso3 %in% ssa_iso)
 
@@ -37,54 +52,72 @@ surveys <- search_variables(combined_datasets, search_vars) %>%
 
 combined_datasets <- combined_datasets %>%
   filter(SurveyId %in% surveys$survey_id) %>%
-  mutate(dataset = ifelse(FileType == "Individual Recode", "ir",
-    ifelse(FileType == "Men's Recode", "mr", NA)
-  ))
+  mutate(
+    dataset = ifelse(
+      FileType == "Individual Recode", 
+      "ir",
+      ifelse(FileType == "Men's Recode", "mr", NA)
+    )
+  )
 
 sexbehav_raw <- get_datasets(combined_datasets) %>%
-  setNames(paste0(combined_datasets$survey_id, "-", combined_datasets$dataset)) %>%
-  .[grepl("\\.rds$", .)] %>%
+  setNames(paste0(
+    combined_datasets$survey_id, "-", combined_datasets$dataset
+  )) %>%
+  # select(matches("\\.rds$")) %>% # would this work?
+  .[grepl("\\.rds$", .)] %>% 
   lapply(readRDS)
 
 sexbehav_raw$`UGA2011AIS-ir` <- sexbehav_raw$`UGA2011AIS-ir` %>%
   mutate(v791a = ifelse(s448b == 1 | s448e == 1, 1, 0))
 
-sexbehav_raw %<>% setNames(combined_datasets$survey_id)
+names(sexbehav_raw) <- combined_datasets$survey_id
 
-## MWI2010DHS: s631cc, cb, cc. Check survey.
+# MWI2010DHS: s631cc, cb, cc. Check survey. 
 
-sexbehav_extracted <- sexbehav_raw %>%
-  Map(extract_survey_vars,
-    df = .,
-    survey_id = names(.),
-    list(variable_recode),
-    # file_type[names(.)],
-    combined_datasets$dataset,
-    analysis = "sexbehav"
-  )
+sexbehav_extracted <- Map(
+  extract_survey_vars,
+  df = sexbehav_raw,
+  survey_id = names(sexbehav_raw),
+  list(variable_recode),
+  # file_type[names(sexbehav_raw)],
+  combined_datasets$dataset,
+  analysis = "sexbehav"
+)
 
 # debugonce(extract_survey_vars)
 # extract_survey_vars(sexbehav_raw$COG2009AIS, "COG2009AIS", variable_recode, "ir", "sexbehav")
 
-sexbehav_recoded <- sexbehav_extracted %>%
-  Map(recode_survey_variables,
-    df = .,
-    survey_id = names(.),
-    list(value_recode),
-    combined_datasets$dataset,
-    analysis = "sexbehav"
-  )
+sexbehav_recoded <- Map(
+  recode_survey_variables,
+  df = sexbehav_extracted,
+  survey_id = names(sexbehav_extracted,),
+  list(value_recode),
+  combined_datasets$dataset,
+  analysis = "sexbehav"
+)
 
 #################
 
 sharepoint <- spud::sharepoint$new(Sys.getenv("SHAREPOINT_URL"))
-folder <- sharepoint$folder(site = Sys.getenv("SHAREPOINT_SITE"), path = Sys.getenv("MICS_ORDERLY_PATH"))
+folder <- sharepoint$folder(
+  site = Sys.getenv("SHAREPOINT_SITE"), path = Sys.getenv("MICS_ORDERLY_PATH")
+)
 
 mics_sharepoint_df <- folder$list() %>%
   dplyr::filter(str_detect(name, paste0(tolower(ssa_iso), collapse = "|")))
 
-mics_paths <- file.path("sites", Sys.getenv("SHAREPOINT_SITE"), Sys.getenv("MICS_ORDERLY_PATH"), mics_sharepoint_df$name)
-mics_files <- lapply(mics_paths, spud::sharepoint_download, sharepoint_url = Sys.getenv("SHAREPOINT_URL"))
+mics_paths <- file.path(
+  "sites", 
+  Sys.getenv("SHAREPOINT_SITE"), 
+  Sys.getenv("MICS_ORDERLY_PATH"), 
+  mics_sharepoint_df$name
+)
+mics_files <- lapply(
+  mics_paths, 
+  spud::sharepoint_download, 
+  sharepoint_url = Sys.getenv("SHAREPOINT_URL")
+)
 
 mics_dat <- lapply(mics_files, readRDS) %>%
   setNames(toupper(str_sub(mics_sharepoint_df$name, 0, 11))) %>%
@@ -105,33 +138,39 @@ mics_wm <- mics_dat %>%
   compact()
 
 mics_raw <- c(mics_wm, mics_mr)
-# mics_raw <- c(mics_wm)
 
 file_type <- c(rep("wm", length(mics_wm)), rep("mn", length(mics_mr)))
 
-mics_extracted <- mics_raw %>%
-  Map(extract_survey_vars,
-    df = .,
-    survey_id = names(.),
-    list(variable_recode),
-    # file_type[names(.)],
-    file_type,
-    analysis = "sexbehav"
-  )
+mics_extracted <- Map(
+  extract_survey_vars,
+  df = mics_raw,
+  survey_id = names(mics_raw),
+  list(variable_recode),
+  # file_type[names(.)],
+  file_type,
+  analysis = "sexbehav"
+)
 
-## What to do about MS3U and MS3N? No pre-calculated imputed variable into months. If constant can pick and calculate. If changing variable name: right pain in the arse
+# What to do about MS3U and MS3N? 
+# No pre-calculated imputed variable into months. 
+# If constant can pick and calculate. 
+# If changing variable name: annoying!
+
 # TGO2017MICS: MSB2U/N
 # TGO2010MICS: SH3U/N
 # Same for wm datasets
 
-## Sex behaviour relationship/other1/other2 is a risky recode.. Examples where the factor numbers are the same but the value labels are different. Won't be picked up. Need to manually confirm all surveys conform to the _default_mics template
-mics_recoded <- mics_extracted %>%
-  Map(recode_survey_variables,
-    df = .,
-    survey_id = names(.),
-    list(value_recode),
-    file_type,
-    analysis = "sexbehav"
+## Sex behaviour relationship/other1/other2 is a risky recode.. 
+# Examples where factor numbers are the same but val labels are different. 
+# Won't be picked up. 
+# Need to manually confirm all surveys conform to the _default_mics template
+mics_recoded <- Map(
+  recode_survey_variables,
+  df = mics_extracted,
+  survey_id = names(mics_extracted),
+  list(value_recode),
+  file_type,
+  analysis = "sexbehav"
   )
 
 # write.csv(sexbehav_ir %>% mutate(dataset = "ir"), "~/Downloads/dhs_sexbehav_ir.csv")
@@ -140,11 +179,31 @@ mics_recoded <- mics_extracted %>%
 
 tmp <- tempdir()
 
-phia_paths <- lapply(list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/household surveys/PHIA/datasets", full.names = TRUE), list.files, full.names = TRUE, pattern = "dataset") %>%
+phia_path <- file.path(
+  "~/Imperial College London/HIV Inference Group - WP - Documents",
+  "Data/household surveys/PHIA/datasets"
+)
+
+# Come back to this and functionalise
+phia_paths <- lapply(
+  list.files(phia_path, full.names = TRUE), 
+  list.files, full.names = TRUE, pattern = "dataset"
+  ) %>%
   lapply(list.files, full.names = TRUE, pattern = "Interview") %>%
   lapply(grep, pattern = "CSV).zip", value = TRUE) %>%
   lapply(grep, pattern = "Child", value = TRUE, invert = TRUE) %>%
   unlist()
+
+# phia_paths <- list.files(phia_paths, full.names = TRUE)
+# phia_paths <- lapply(
+#   phia_paths, list.files, full.names = TRUE, pattern = "dataset"
+# )
+# phia_paths <- lapply(
+#   phia_paths, list.files, full.names = TRUE, pattern = "Interview"
+# )
+# phia_paths <- lapply(phia_paths, grep, pattern = "CSV).zip", value = TRUE)
+# 
+
 
 lapply(phia_paths, function(x) {
   message(x)
@@ -152,15 +211,28 @@ lapply(phia_paths, function(x) {
 })
 
 phia_files <- list.files(tmp, full.names = TRUE)
-phia_path <- grep("adultind", phia_files, value = TRUE) ## Only finding 11 PHIA paths from 12. CAMPHIA is in a nested folder
-phia_path <- c(phia_path, file.path(tmp, "203 CAMPHIA 2017-2018 Adult Interview Dataset (CSV)/camphia2017adultind.csv"))
+# Only finding 11 PHIA paths from 12. CAMPHIA is in a nested folder
+phia_path <- grep("adultind", phia_files, value = TRUE)
+
+phia_path <- c(
+  phia_path, 
+  file.path(
+    tmp, 
+    "203 CAMPHIA 2017-2018 Adult Interview Dataset (CSV)/camphia2017adultind.csv"
+  )
+)
 
 phia_dat <- lapply(phia_path, function(x) {
   dat <- read.csv(x)
   dat %>%
     mutate(
       across(everything(), str_trim),
-      across(everything(), str_replace_all, pattern = "\\.", replacement = NA_character_)
+      across(
+        everything(), 
+        str_replace_all, 
+        pattern = "\\.", 
+        replacement = NA_character_
+      )
     ) %>%
     type.convert()
 })
@@ -186,7 +258,7 @@ names(phia_dat) <- c(
 
 colnames(phia_dat[[4]])
 
-## Again - PHIA surveys missing centroids? Assume in separate geodata set or something?
+## Again - PHIA surveys missing centroids? Assume in separate geodata set?
 phia_extracted <- phia_dat %>%
   Map(extract_survey_vars,
     df = .,
@@ -197,10 +269,17 @@ phia_extracted <- phia_dat %>%
     analysis = "sexbehav"
   )
 
-write.csv(phia_extracted %>% bind_rows(.id = "survey_id"), "~/Downloads/phia_sexbehav.csv")
+write.csv(
+  bind_rows(phia_extracted, .id = "survey_id"), 
+  "~/Downloads/phia_sexbehav.csv"
+)
 
-phia_geo_paths <- list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/household surveys/PHIA/geospatial/All PHIA1 PR Geospatial Data for Download", full.names = TRUE)
-
+phia_geo_path <- file.path(
+  sharepoint_loc, 
+  "Data/household surveys/PHIA/geospatial/",
+  "All PHIA1 PR Geospatial Data for Download"
+)
+phia_geo_paths <- list.files(phia_geo_path, full.names = TRUE)
 phia_surv_name <- str_sub(phia_geo_paths, start = 161) %>%
   str_split(pattern = " ") %>%
   lapply(head, 1) %>%
@@ -222,13 +301,13 @@ lapply(phia_geo_paths, function(x) {
 phia_dat[[4]][1, c(1:5)]
 
 ## What to do about receiving money/gifts for sex variables in PHIA surveys?
-phia_recoded <- phia_extracted %>%
-  Map(recode_survey_variables,
-    df = .,
-    survey_id = names(.),
-    list(value_recode),
-    "phia",
-    analysis = "sexbehav"
-  )
+phia_recoded <- Map(
+  recode_survey_variables,
+  df = phia_extracted,
+  survey_id = names(phia_extracted),
+  list(value_recode),
+  "phia",
+  analysis = "sexbehav"
+)
 
-write.csv(phia_recoded %>% bind_rows(), "~/Downloads/phia_sexbehav.csv")
+write.csv(bind_rows(phia_recoded), "~/Downloads/phia_sexbehav.csv")

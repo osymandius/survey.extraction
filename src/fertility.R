@@ -3,7 +3,14 @@ library(rdhs)
 
 source("extract_funs.R")
 
-recode_xlsx <- "~/Imperial College London/HIV Inference Group - WP - Documents/Circumcision coverage/raw/Survey extract/hivdata_survey_datasets.xlsx"
+# data directory
+dir_loc <- file.path(
+  "~/Imperial College London/HIV Inference Group - WP - Documents/",
+  "Circumcision coverage/raw/Survey extract"
+)
+
+# recoding excel sheet
+recode_xlsx <- file.path(dir_loc, "hivdata_survey_datasets.xlsx")
 variable_recode = readxl::read_excel(
   recode_xlsx, sheet = "variable_recode", na = "NA"
 )
@@ -57,7 +64,7 @@ fert_recoded <- fert_raw %>%
   }) %>%
   imap(~ mutate(.x, survey_id = .y))
 
-### MICS data
+#### MICS data ####
 
 sharepoint <- spud::sharepoint$new(Sys.getenv("SHAREPOINT_URL"))
 folder <- sharepoint$folder(
@@ -89,8 +96,6 @@ mics_dat <- lapply(mics_files, readRDS) %>%
 #       NULL
 #   )
 
-
-
 mics_bh <- lapply(mics_dat, "[", "bh") %>%
   unlist(recursive = FALSE) %>%
   setNames(names(mics_dat)) %>%
@@ -102,6 +107,8 @@ mics_bh$MOZ2008MICS <- mics_bh$MOZ2008MICS %>%
       select(MEMID, HH1, HH2, LN)),
     by = "MEMID"
   )
+
+#### Extract and Recode ####
 
 bh_extracted <- Map(
   extract_survey_vars,
@@ -130,7 +137,7 @@ recode_survey_variables(
   analysis = "sexbehav"
 )
 
-debugonce(val_recode)
+# debugonce(val_recode)
 
 df %>%
   mutate(
