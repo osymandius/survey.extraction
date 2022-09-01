@@ -1,12 +1,12 @@
 library(tidyverse)
 library(rdhs)
 
-source("extract_funs.R")
+source("src/extract_funs.R")
 
 ssa_iso3 <- c("BDI", "BEN", "BFA", "CIV", "CMR", "COD", "COG", "GMB", "KEN", "LSO", "MLI", "MOZ", "MWI", "NGA", "SLE", "SWZ", "TCD", "TGO", "ZWE", "AGO", "ETH", "GAB", "GHA", "GIN", "LBR", "NAM", "NER", "RWA", "SEN", "TZA", "UGA", "ZMB")
 
-variable_recode = readxl::read_excel("~/Imperial College London/HIV Inference Group - WP - Documents/Circumcision coverage/raw/Survey extract/hivdata_survey_datasets.xlsx", sheet = "variable_recode", na = "NA")
-value_recode = readxl::read_excel("~/Imperial College London/HIV Inference Group - WP - Documents/Circumcision coverage/raw/Survey extract/hivdata_survey_datasets.xlsx", sheet = "value_recode", na = "NA")
+variable_recode = readxl::read_excel("data/hivdata_survey_datasets.xlsx", sheet = "variable_recode", na = "NA")
+value_recode = readxl::read_excel("data/hivdata_survey_datasets.xlsx", sheet = "value_recode", na = "NA")
 
 dhs_survey_characteristics() %>%
   filter(grepl("circumcision", SurveyCharacteristicName))
@@ -93,6 +93,7 @@ phia_dat <- lapply(phia_path, function(x) {
 names(phia_dat) <- c(
   "CIV2017PHIA",
   "ETH2017PHIA",
+  "KEN2018PHIA",
   "LSO2016PHIA",
   "MWI2015PHIA",
   "NAM2017PHIA",
