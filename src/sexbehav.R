@@ -273,10 +273,8 @@ phia_geo_files <- phia_geo_files[
     grepl("centroids.csv", phia_geo_files)
 ]
 
-# change names to survey naems
-# names(phia_geo_files) <- stringr::str_remove_all(basename(names(phia_geo_files)), "%20")
-
-
+# change names to survey names
+## Paddy: Missing KEN2018PHIA survey, not sure whether this should be here
 names(phia_geo_files) <- c(
   "NAM2017PHIA",
   "ZWE2015PHIA",
