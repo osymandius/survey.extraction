@@ -1,7 +1,17 @@
-library(tidyverse)
+## Circumcision Survey Extraction ##
+
+#### Load Packages ####
+
+library(dplyr)
+library(stringr)
+library(purrr)
+library(haven)
 library(rdhs)
 
-source("extract_funs.R")
+source("src/extract_funs.R")
+
+
+#### Set Metadata ####
 
 ssa_iso3 <- c(
   "BDI", "BEN", "BFA", "CIV", "CMR", "COD", "COG", "GMB", "KEN", "LSO", "MLI", 
@@ -10,26 +20,39 @@ ssa_iso3 <- c(
 )
 
 # data directory
-dir_loc <- file.path(
-  "~/Imperial College London/HIV Inference Group - WP - Documents/",
-  "Circumcision coverage/raw/Survey extract"
-)
+# dir_loc <- file.path(
+#   "~/Imperial College London/HIV Inference Group - WP - Documents/",
+#   "Circumcision coverage/raw/Survey extract"
+# )
 # file to save output in
-save_loc <- file.path(dir_loc, "circ_recoded_dhs.rds")
+# save_loc <- file.path(dir_loc, "circ_recoded_dhs.rds")
+
+
+# url and site for sharepoint
+url <- Sys.getenv("SHAREPOINT_URL")
+site <- Sys.getenv("SHAREPOINT_SITE")
+# specific path to PHIA datasets
+phia_sharepoint_path <- "Shared Documents/Data/household surveys/PHIA/datasets/"
+# path to save circumcision data
+save_path <- paste0(
+  "Shared Documents/Circumcision coverage/raw/Survey extract/",
+  "circ_recoded_dhs_test.rds"
+)
+
+#### Load Recoding Datasets ####
 
 # recoding excel sheet
-recode_xlsx <- file.path(dir_loc, "hivdata_survey_datasets.xlsx")
 variable_recode = readxl::read_excel(
-  recode_xlsx, sheet = "variable_recode", na = "NA"
+  "data/hivdata_survey_datasets.xlsx", sheet = "variable_recode", na = "NA"
 )
-value_recode = readxl::read_excel(
-  recode_xlsx, sheet = "value_recode", na = "NA"
-)
+value_recode = type.convert(readxl::read_excel(
+  "data/hivdata_survey_datasets.xlsx", sheet = "value_recode", na = "NA"
+))
 
-dhs_survey_characteristics() %>%
+rdhs::dhs_survey_characteristics() %>%
   filter(grepl("circumcision", SurveyCharacteristicName))
 
-survey_has_circ <- dhs_surveys(surveyCharacteristicIds = 59) %>%
+survey_has_circ <- rdhs::dhs_surveys(surveyCharacteristicIds = 59) %>%
   filter(!SurveyId %in% c("LB2019DHS", "GN2012DHS")) %>%
   mutate(
     survey_id = paste0(
@@ -39,7 +62,7 @@ survey_has_circ <- dhs_surveys(surveyCharacteristicIds = 59) %>%
   ))
 
 # Men's recode datasets
-mrd <- dhs_datasets(fileType = "MR", fileFormat = "FL")
+mrd <- rdhs::dhs_datasets(fileType = "MR", fileFormat = "FL")
 
 combined_datasets %>% filter(CountryName == "Mozambique")
 
@@ -84,35 +107,79 @@ circ_raw <- get_datasets(combined_datasets, clear_cache = TRUE) %>%
   .[grepl("\\.rds$", .)] %>%
   lapply(readRDS)
 
+
 #### PHIA surveys ####
 
 tmp <- tempdir()
 
-phia_loc <- 
-phia_paths <- lapply(
-  list.files(
-    "~/Imperial College London/HIV Inference Group - WP - Documents/Data/household surveys/PHIA/datasets", 
-             full.names = TRUE), list.files, full.names = TRUE, pattern = "dataset") %>%
-  lapply(list.files, full.names = TRUE, pattern = "Interview") %>%
-  lapply(grep, pattern = "CSV).zip", value = TRUE) %>%
-  lapply(grep, pattern = "Child", value = TRUE, invert = TRUE) %>%
-  unlist()
+# create connection to sharepoint folder
+sharepoint <- spud::sharepoint$new(url)
 
-lapply(phia_paths, function(x) {
+# List cntry/datasets folders in PHIA sharepoint folder 
+phia_folder <- sharepoint$folder(
+  site = site, 
+  path = URLencode(phia_sharepoint_path)
+)
+cntry_folders <- phia_folder$folders()$name 
+folders_list <- lapply(cntry_folders, function(x) {
+  sharepoint$folder(
+    site = site, 
+    path = URLencode(file.path(phia_sharepoint_path, x, "/datasets"))
+  )
+})
+
+# pull urls from each folder for each file
+urls <- unlist(lapply(seq_along(folders_list), function(i) {
+  URLencode(file.path(
+    "sites", 
+    site, 
+    # path, 
+    phia_sharepoint_path,   
+    cntry_folders[[i]], 
+    "datasets/",
+    folders_list[[i]]$files()$name
+  ))
+}))
+
+# filter URL
+urls <- urls[
+  grepl("Interview", urls) & 
+    grepl("CSV).zip", urls) & 
+    !grepl("Child", urls)
+]
+
+# download files, name with urls so we know order of temp files
+files = lapply(urls, sharepoint$download)
+if (length(files) == 0) stop("No files found at supplied path")
+
+# unzip files
+lapply(files, function(x) {
   message(x)
   unzip(x, exdir = tmp)
 })
 
 phia_files <- list.files(tmp, full.names = TRUE)
-phia_path <- grep("adultind", phia_files, value = TRUE) ## Only finding 11 PHIA paths from 12. CAMPHIA is in a nested folder
-phia_path <- c(phia_path, file.path(tmp, "203 CAMPHIA 2017-2018 Adult Interview Dataset (CSV)/camphia2017adultind.csv"))
+phia_path <- grep("adultind", phia_files, value = TRUE) 
+# Only finding 11 PHIA paths from 12. CAMPHIA is in a nested folder
+phia_path <- c(
+  phia_path, 
+  file.path(
+    tmp, 
+    "203 CAMPHIA 2017-2018 Adult Interview Dataset (CSV)/camphia2017adultind.csv"
+  )
+)
 
 phia_dat <- lapply(phia_path, function(x) {
-  dat <- read.csv(x)
+  dat <- readr::read_csv(x)
   dat %>%
     mutate(
-      across(everything(), str_trim),
-      across(everything(), str_replace_all, pattern = "\\.", replacement = NA_character_)
+      across(everything(), stringr::str_trim),
+      across(
+        everything(), 
+        stringr::str_replace_all, 
+        pattern = "\\.", 
+        replacement = NA_character_
+      )
     ) %>%
     type.convert()
 })
@@ -124,6 +191,7 @@ phia_dat <- lapply(phia_path, function(x) {
 names(phia_dat) <- c(
   "CIV2017PHIA",
   "ETH2017PHIA",
+  "KEN2018PHIA",
   "LSO2016PHIA",
   "MWI2015PHIA",
   "NAM2017PHIA",
@@ -138,37 +206,25 @@ names(phia_dat) <- c(
 
 circ_raw <- c(circ_raw, phia_dat)
 
-phia_file_type <- rep("phia", length(phia_dat)) %>% setNames(names(phia_dat))
+phia_file_type <- rep("phia", length(phia_dat))
+names(phia_file_type) <- names(phia_dat)
+
 
 #### MICS surveys ####
 
 # I haven't included the code for how I found these surveys. Should this be 
 # stored elsewhere? Along with Jeff's rdhs::search_variable_label code
+
+
+# load mics surveys with circumcision information
 mics_surveys_with_circ <- c(
   "ZWE2014MICS", "GHA2017MICS", "BEN2014MICS", "SWZ2014MICS", "MWI2013MICS", 
   "GMB2018MICS", "SWZ2010MICS", "NGA2016MICS", "TCD2019MICS"
 )
-
-sharepoint <- spud::sharepoint$new(Sys.getenv("SHAREPOINT_URL"))
-folder <- sharepoint$folder(
-  site = Sys.getenv("SHAREPOINT_SITE"), path = Sys.getenv("MICS_ORDERLY_PATH")
-)
-
-mics_sharepoint_df <- folder$list() %>%
-  dplyr::filter(
-    str_detect(name, paste0(tolower(mics_surveys_with_circ), collapse = "|"))
-  )
-
-mics_paths <- file.path(
-  "sites", 
-  Sys.getenv("SHAREPOINT_SITE"), 
-  Sys.getenv("MICS_ORDERLY_PATH"), 
-  mics_sharepoint_df$name
-)
-mics_files <- lapply(
-  mics_paths, 
-  spud::sharepoint_download, 
-  sharepoint_url = Sys.getenv("SHAREPOINT_URL")
+mics_dat <- load_sharepoint_data(
+  path = Sys.getenv("MICS_ORDERLY_PATH"), 
+  pattern = paste0(tolower(mics_surveys_with_circ), collapse = "|"),
+  load_fun = readRDS
 )
 
 # There needs to be some additional code to rename the datasets themselves when 
@@ -188,18 +244,20 @@ mics_files <- lapply(
 #
 # Currently surveys with custom dataset names are not extracted
 
-mics_dat <- lapply(mics_files, readRDS) %>%
-  lapply("[", "mn") %>%
-  unlist(recursive = FALSE) %>%
-  setNames(mics_surveys_with_circ) %>%
-  lapply(function(x) {
-    x %>%
-      `colnames<-`(tolower(names(x)))
-  })
+# pull mn datasets, name appropriately
+mics_dat <- unlist(lapply(mics_dat, "[", "mn"), recursive = FALSE)
+names(mics_dat) <- mics_surveys_with_circ
+# change colnames to lowercase
+mics_dat <- lapply(mics_dat, function(x) {
+    colnames(x) <- tolower(names(x))
+    return(x)
+})
 
 circ_raw <- c(circ_raw, mics_dat)
 
-mics_file_type <- rep("mn", length(mics_dat)) %>% setNames(names(mics_dat))
+mics_file_type <- rep("mn", length(mics_dat)) 
+names(mics_file_type) <- names(mics_dat)
+
 
 ### Extract and recode variables
 
@@ -235,11 +293,12 @@ circ_recoded <- Map(
   analysis = "circ"
 )
 
-foo <- compact(lapply(circ_recoded, function(x) {
+# remove dfs with less than rows and/or who have all NA for circ_status
+circ_recoded_save <- purrr::compact(lapply(circ_recoded, function(x) {
   if (ncol(x) < 6) {
     NULL
   } else if (
-    length(unique(x$circ_status)) == 1 & is.na(unique(x$circ_status))
+    length(unique(x$circ_status)) == 1 && is.na(unique(x$circ_status))
   ) {
     NULL
   } else {
@@ -247,7 +306,7 @@ foo <- compact(lapply(circ_recoded, function(x) {
   }
 }))
 
-# mr_surveys <- names(foo)[names(foo) %in% names(file_type[file_type == "mr"])]
+# mr_surveys <- names(circ_recoded_save)[names(circ_recoded_save) %in% names(file_type[file_type == "mr"])]
 # no_circ_id <- mr_surveys[!mr_surveys %in% survey_has_circ$survey_id]
 #
 # dhs_cc <- no_circ_id %>%
@@ -259,7 +318,29 @@ foo <- compact(lapply(circ_recoded, function(x) {
 # dhs_survey_characteristics(surveyIds = dhs_surv_id) %>%
 #   filter(SurveyCharacteristicID == 59)
 
-saveRDS(foo, file = save_loc)
+# Need to find a way to save this to Sharepoint!
+# saveRDS(circ_recoded_save, file = save_loc)
+# save locally
+saveRDS(circ_recoded_save, file = "circ_recoded.rds")
+# save to Sharepoint using curl 
+system(
+  paste0(
+    "curl --ntlm --user ",
+    Sys.getenv("SHAREPOINT_USERNAME"),
+    ":",
+    Sys.getenv("SHAREPOINT_PASS"),
+    " --upload-file circ_recoded.rds ",
+    URLencode(paste0(
+      url,
+      "sites/",
+      site, 
+      "/",
+      save_path
+    ))
+  )
+)
+# remove local file
+system("rm circ_recoded.rds")
 
 # int <- circ_recoded %>%
 #   bind_rows()
