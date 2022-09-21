@@ -27,7 +27,9 @@ variable_recode = readxl::read_excel(
 )
 value_recode = type.convert(readxl::read_excel(
   "data/hivdata_survey_datasets.xlsx", sheet = "value_recode", na = "NA"
-))
+), as.is = TRUE)
+
+#### Load MICS Data ####
 
 # load mics data 
 mics_dat <- load_sharepoint_data(
@@ -58,6 +60,9 @@ mics_wm <- compact(mics_wm)
 
 # mics_raw <- c(mics_wm, mics_mr)
 mics_raw <- c(mics_wm)
+
+
+#### Extract and Recode Data ####
 
 # file_type <- c(rep("wm", length(mics_wm)), rep("mn", length(mics_mr)))
 file_type <- c(rep("wm", length(mics_wm)))

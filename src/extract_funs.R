@@ -111,10 +111,12 @@ extract_survey_vars <- function(
     )
   } else if (surv_type == "MICS") {
     id_vars <- recode_mics_id_vars(variable_recode, survey_id_c, dataset_type)
+    stopifnot(length(id_vars) > 0)
     colnames(df) <- tolower(colnames(df))
   } else {
     stop("Survey type not recognised")
   }
+  
 
   # find custom var names associated with this survey ID & dataset type
   custom_recode <- filter(
@@ -272,33 +274,29 @@ recode_survey_variables <- function(
       survey_id = survey_id_c,
       individual_id = dhs_individual_id(cluster_id, household, line)
     ) %>%
-    type.convert() %>%
+    type.convert(as.is = TRUE) %>%
     select(survey_id, individual_id, everything())
 }
 
-# function to load data from specific dir on sharepoint
+#### Load data from specific dir on Sharepoint ####
 load_sharepoint_data <- function(
   path, 
   pattern  = NULL, 
   url      = Sys.getenv("SHAREPOINT_URL"),
-  site     = Sys.getenv("SHAREPOINT_SITE"),
-  load_fun = NULL 
+  site     = Sys.getenv("SHAREPOINT_SITE")
 ) {
   
   # create connection to Sharepoint
   sharepoint <- spud::sharepoint$new(url)
   
-  # List files in sharepoint folder 
+  # List files in Sharepoint folder 
   folder <- sharepoint$folder(site = site, path = URLencode(path))
   
   # pull urls for each file
   urls <- URLencode(file.path("sites", site, path, folder$files()$name))
   
   # may only require certain files 
-  if (!is.null(pattern)) {
-    # only want cluster, individuals and circumcision data
-    urls <- urls[grepl(pattern, urls)]
-  }
+  if (!is.null(pattern)) urls <- urls[grepl(pattern, urls)]
   
   # download files, name with urls so we know order of temp files
   files = lapply(urls, sharepoint$download)
@@ -309,4 +307,135 @@ load_sharepoint_data <- function(
   if (!is.null(load_fun)) files <- lapply(files, load_fun)
   
   return(files)
+}
+
+#### Load nested PHIA datasets from Sharepoint ####
+load_phia_nested_sharepoint_data <- function(
+    path, 
+    url  = Sys.getenv("SHAREPOINT_URL"),
+    site = Sys.getenv("SHAREPOINT_SITE")
+) {
+  
+  # create temp file to download data to
+  tmp <- tempdir()
+  
+  # create connection to Sharepoint folder
+  sharepoint <- spud::sharepoint$new(url)
+  
+  # List cntry/datasets folders in PHIA Sharepoint folder 
+  phia_folder <- sharepoint$folder(
+    site = site, 
+    path = URLencode(path)
+  )
+  cntry_folders <- phia_folder$folders()$name 
+  folders_list <- lapply(cntry_folders, function(x) {
+    sharepoint$folder(
+      site = site, 
+      path = URLencode(file.path(path, x, "/datasets"))
+    )
+  })
+  
+  # pull urls from each folder for each file
+  urls <- unlist(lapply(seq_along(folders_list), function(i) {
+    URLencode(file.path(
+      "sites", 
+      site, 
+      # path, 
+      path,   
+      cntry_folders[[i]], 
+      "datasets/",
+      folders_list[[i]]$files()$name
+    ))
+  }))
+  
+  # filter URL
+  urls <- urls[
+    grepl("Interview", urls) & 
+      grepl("CSV).zip", urls) & 
+      !grepl("Child", urls)
+  ]
+  
+  # download files, name with urls so we know order of temp files
+  message("downloading...")
+  files = lapply(urls, sharepoint$download)
+  if (length(files) == 0) stop("No files found at supplied path")
+  
+  # unzip files
+  message("unzipping...")
+  lapply(files, function(x) {
+    message(x)
+    unzip(x, exdir = tmp)
+  })
+  
+  phia_files <- list.files(tmp, full.names = TRUE)
+  phia_path <- grep("adultind", phia_files, value = TRUE) 
+  # Only finding 11 PHIA paths from 12. CAMPHIA is in a nested folder
+  phia_path <- c(
+    phia_path, 
+    file.path(
+      tmp, 
+      "203 CAMPHIA 2017-2018 Adult Interview Dataset (CSV)/camphia2017adultind.csv"
+    )
+  )
+  
+  message("reading files ...")
+  phia_dat <- lapply(phia_path, function(x) {
+    dat <- readr::read_csv(x, show_col_types = FALSE)
+    dat %>%
+      mutate(
+        across(everything(), stringr::str_trim),
+        across(
+          everything(), 
+          stringr::str_replace_all, 
+          pattern = "\\.", 
+          replacement = NA_character_
+        )
+      ) %>%
+      type.convert(as.is = TRUE)
+  })
+  
+  message("done!")
+  return(phia_dat)
+}
+
+#### Upload data to Sharepoint ####
+
+upload_sharepoint_data <- function(
+    .data,
+    filename, 
+    save_path,
+    url      = Sys.getenv("SHAREPOINT_URL"),
+    site     = Sys.getenv("SHAREPOINT_SITE"),
+    save_fun = saveRDS
+) {
+  
+  # save data locally using specified function
+  save_fun(.data, file = filename)
+  
+  sharepoint <- spud::sharepoint$new(url)
+  folder <- sharepoint$folder(site, save_path, verify = TRUE)
+  # folder$upload(path = "circ_recoded.rds", dest = "circ_recoded_test.rds")
+  message("uploading...")
+  folder$upload(path = filename, dest = filename)
+  
+  # remove local file
+  system(paste0("rm ", filename))
+}
+
+#### check if PHIA survey names are assigned correctly ####
+check_phia_names <- function(.data) {
+  stopifnot(
+    all(
+      # pull country names from dataframes and convert to iso3c
+      vapply(.data, function(x) {
+        countrycode::countrycode(
+          x$country[1], 
+          origin = "country.name", 
+          destination = "iso3c"
+        )
+      }, character(1)) == 
+        # compare with survey names
+        substr(names(.data), 0, 3)
+    )
+  )
 }

@@ -1,35 +1,56 @@
-library(tidyverse)
+## Sexual Behaviour Survey Extraction ##
+
+#### Load Packages ####
+
+library(dplyr)
+library(stringr)
+library(purrr)
+library(haven)
 library(rdhs)
-library(magrittr)
+library(countrycode)
 
-source("extract_funs.R")
+source("src/extract_funs.R")
 
-sharepoint_loc <- 
-  "~/Imperial College London/HIV Inference Group - WP - Documents/"
 
-ssa_iso <- c(
-  "BDI", "BEN", "BFA", "CIV", "CMR", "COD", "COG", "GMB", "KEN", "LSO", "MLI", 
-  "MOZ", "MWI", "NGA", "SLE", "SWZ", "TCD", "TGO", "ZWE", "AGO", "ETH", "GAB", 
-  "GHA", "GIN", "LBR", "NAM", "NER", "RWA", "SEN", "TZA", "UGA", "ZMB"
+#### Set Metadata ####
+
+ssa_iso3 <- sort(c(
+  "BDI", "BEN", "BFA", "CAF", "CIV", "CMR", "COD", "COG", "GMB", "KEN", "LSO",
+  "MLI", "MOZ", "MWI", "NGA", "SLE", "SWZ", "TCD", "TGO", "ZWE", "AGO", "ETH",
+  "GAB", "GHA", "GIN", "LBR", "NAM", "NER", "RWA", "SEN", "TZA", "UGA", "ZMB"
+))
+
+# url and site for sharepoint
+url <- Sys.getenv("SHAREPOINT_URL")
+site <- Sys.getenv("SHAREPOINT_SITE")
+
+# specific path to PHIA datasets
+phia_sharepoint_path <- "Shared Documents/Data/household surveys/PHIA/datasets/"
+
+# path for PHIA geo datasets
+phia_geo_path <- file.path(
+  "Shared Documents/Data/household surveys/PHIA/geospatial",
+  "All PHIA1 PR Geospatial Data for Download"
 )
 
-# data directory
-dir_loc <- "~/Dropbox/oli backup/Survey extraction/"
+
+#### Load Recoding Datasets ####
 
 # recoding excel sheet
-recode_xlsx <- file.path(dir_loc, "hivdata_survey_datasets.xlsx")
 variable_recode = readxl::read_excel(
-  recode_xlsx, sheet = "variable_recode", na = "NA"
+  "data/hivdata_survey_datasets.xlsx", sheet = "variable_recode", na = "NA"
 )
 value_recode = type.convert(readxl::read_excel(
-  recode_xlsx, sheet = "value_recode", na = "NA"
-))
+  "data/hivdata_survey_datasets.xlsx", sheet = "value_recode", na = "NA"
+), as.is = TRUE)
 
 search_vars <- variable_recode %>% 
   filter(str_detect(variable, "sexbehav")) %>% 
   distinct(var_raw) %>% 
   pull()
 
+
+#### Download DHS Data ####
 
 mrd <- dhs_datasets(fileType = "MR", fileFormat = "FL")
 
@@ -39,7 +60,7 @@ combined_datasets <- dhs_datasets(fileType = "IR", fileFormat = "FL") %>%
     iso3 = dhscc_to_iso3(DHS_CountryCode),
     survey_id = paste0(iso3, SurveyYear, SurveyType)
   ) %>%
-  filter(iso3 %in% ssa_iso)
+  filter(iso3 %in% ssa_iso3)
 
 dl <- rdhs::get_downloaded_datasets()
 dl <- names(dl)
@@ -75,6 +96,9 @@ names(sexbehav_raw) <- combined_datasets$survey_id
 
 # MWI2010DHS: s631cc, cb, cc. Check survey. 
 
+
+#### Extract and Recode DHS Data ####
+
 sexbehav_extracted <- Map(
   extract_survey_vars,
   df = sexbehav_raw,
@@ -91,53 +115,42 @@ sexbehav_extracted <- Map(
 sexbehav_recoded <- Map(
   recode_survey_variables,
   df = sexbehav_extracted,
-  survey_id = names(sexbehav_extracted,),
+  survey_id = names(sexbehav_extracted),
   list(value_recode),
   combined_datasets$dataset,
   analysis = "sexbehav"
 )
 
-#################
 
-sharepoint <- spud::sharepoint$new(Sys.getenv("SHAREPOINT_URL"))
-folder <- sharepoint$folder(
-  site = Sys.getenv("SHAREPOINT_SITE"), path = Sys.getenv("MICS_ORDERLY_PATH")
+#### MICS ####
+
+# load mics data 
+mics_dat <- load_sharepoint_data(
+  path = Sys.getenv("MICS_ORDERLY_PATH"), 
+  pattern = paste0(tolower(ssa_iso3), collapse = "|"),
+  load_fun = readRDS
+)
+# change names from e.g. ner2000mics.rds to NER2000MICS
+names(mics_dat) <- toupper(stringr::str_sub(names(mics_dat), 0, 11))
+
+# pull male and female mics surveys, remove empty elements of list
+mics_dat <- purrr::compact(
+  lapply(
+    lapply(mics_dat, "[", c("mn", "wm")),
+    purrr::compact
+  )
 )
 
-mics_sharepoint_df <- folder$list() %>%
-  dplyr::filter(str_detect(name, paste0(tolower(ssa_iso), collapse = "|")))
-
-mics_paths <- file.path(
-  "sites", 
-  Sys.getenv("SHAREPOINT_SITE"), 
-  Sys.getenv("MICS_ORDERLY_PATH"), 
-  mics_sharepoint_df$name
-)
-mics_files <- lapply(
-  mics_paths, 
-  spud::sharepoint_download, 
-  sharepoint_url = Sys.getenv("SHAREPOINT_URL")
-)
-
-mics_dat <- lapply(mics_files, readRDS) %>%
-  setNames(toupper(str_sub(mics_sharepoint_df$name, 0, 11))) %>%
-  lapply("[", c("mn", "wm")) %>%
-  lapply(compact) %>%
+mics_mr <- unlist(lapply(mics_dat, "[", "mn"), recursive = FALSE) %>%
+  setNames(str_sub(names(.), 0, -4)) %>%
   compact()
-
-mics_mr <- mics_dat %>%
-  lapply("[", "mn") %>%
+mics_wm <- unlist(lapply(mics_dat, "[", "wm"), recursive = FALSE) %>%
   unlist(recursive = FALSE) %>%
   setNames(str_sub(names(.), 0, -4)) %>%
   compact()
-
-mics_wm <- mics_dat %>%
-  lapply("[", "wm") %>%
-  unlist(recursive = FALSE) %>%
-  setNames(str_sub(names(.), 0, -4)) %>%
-  compact()
-
 mics_raw <- c(mics_wm, mics_mr)
+
+#### Extract and Recode MICS Data ####
 
 file_type <- c(rep("wm", length(mics_wm)), rep("mn", length(mics_mr)))
 
@@ -175,67 +188,10 @@ mics_recoded <- Map(
 
 # write.csv(sexbehav_ir %>% mutate(dataset = "ir"), "~/Downloads/dhs_sexbehav_ir.csv")
 
-###############
+#### PHIA surveys ####
 
-tmp <- tempdir()
-
-phia_path <- file.path(
-  "~/Imperial College London/HIV Inference Group - WP - Documents",
-  "Data/household surveys/PHIA/datasets"
-)
-
-# Come back to this and functionalise
-phia_paths <- lapply(
-  list.files(phia_path, full.names = TRUE), 
-  list.files, full.names = TRUE, pattern = "dataset"
-  ) %>%
-  lapply(list.files, full.names = TRUE, pattern = "Interview") %>%
-  lapply(grep, pattern = "CSV).zip", value = TRUE) %>%
-  lapply(grep, pattern = "Child", value = TRUE, invert = TRUE) %>%
-  unlist()
-
-# phia_paths <- list.files(phia_paths, full.names = TRUE)
-# phia_paths <- lapply(
-#   phia_paths, list.files, full.names = TRUE, pattern = "dataset"
-# )
-# phia_paths <- lapply(
-#   phia_paths, list.files, full.names = TRUE, pattern = "Interview"
-# )
-# phia_paths <- lapply(phia_paths, grep, pattern = "CSV).zip", value = TRUE)
-# 
-
-
-lapply(phia_paths, function(x) {
-  message(x)
-  unzip(x, exdir = tmp)
-})
-
-phia_files <- list.files(tmp, full.names = TRUE)
-# Only finding 11 PHIA paths from 12. CAMPHIA is in a nested folder
-phia_path <- grep("adultind", phia_files, value = TRUE)
-
-phia_path <- c(
-  phia_path, 
-  file.path(
-    tmp, 
-    "203 CAMPHIA 2017-2018 Adult Interview Dataset (CSV)/camphia2017adultind.csv"
-  )
-)
-
-phia_dat <- lapply(phia_path, function(x) {
-  dat <- read.csv(x)
-  dat %>%
-    mutate(
-      across(everything(), str_trim),
-      across(
-        everything(), 
-        str_replace_all, 
-        pattern = "\\.", 
-        replacement = NA_character_
-      )
-    ) %>%
-    type.convert()
-})
+# load nested PHIA data from sharepoint
+phia_dat <- load_phia_nested_sharepoint_data(phia_sharepoint_path)
 
 # lapply(dat, function(dat) {
 #   grep(x = colnames(dat), pattern = "mc", value=TRUE)
@@ -244,6 +200,7 @@ phia_dat <- lapply(phia_path, function(x) {
 names(phia_dat) <- c(
   "CIV2017PHIA",
   "ETH2017PHIA",
+  "KEN2018PHIA",
   "LSO2016PHIA",
   "MWI2015PHIA",
   "NAM2017PHIA",
@@ -251,54 +208,36 @@ names(phia_dat) <- c(
   "SWZ2016PHIA",
   "TZA2016PHIA",
   "UGA2016PHIA",
-  "ZWE2015PHIA",
   "ZMB2016PHIA",
+  "ZWE2015PHIA",
   "CMR2017PHIA"
 )
 
-colnames(phia_dat[[4]])
+# check if names are assigned correctly
+check_phia_names(phia_dat)
+
+colnames(phia_dat[[4]]) # ?
+
+
+#### Extract and Recode PHIA Data ####
 
 ## Again - PHIA surveys missing centroids? Assume in separate geodata set?
-phia_extracted <- phia_dat %>%
-  Map(extract_survey_vars,
-    df = .,
-    survey_id = names(.),
-    list(variable_recode),
-    # file_type[names(.)],
-    "phia",
-    analysis = "sexbehav"
-  )
-
-write.csv(
-  bind_rows(phia_extracted, .id = "survey_id"), 
-  "~/Downloads/phia_sexbehav.csv"
+phia_extracted <- Map(
+  extract_survey_vars,
+  df = phia_dat,
+  survey_id = names(phia_dat),
+  list(variable_recode),
+  "phia",
+  analysis = "sexbehav"
 )
 
-phia_geo_path <- file.path(
-  sharepoint_loc, 
-  "Data/household surveys/PHIA/geospatial/",
-  "All PHIA1 PR Geospatial Data for Download"
-)
-phia_geo_paths <- list.files(phia_geo_path, full.names = TRUE)
-phia_surv_name <- str_sub(phia_geo_paths, start = 161) %>%
-  str_split(pattern = " ") %>%
-  lapply(head, 1) %>%
-  unlist()
+## Paddy: Where should this be saved now?
+# readr::write_csv(
+#   bind_rows(phia_extracted, .id = "survey_id"), 
+#   "~/Downloads/phia_sexbehav.csv"
+# )
 
-lapply(phia_geo_paths, function(x) {
-  message(x)
-  unzip(x, exdir = tmp)
-})
-
-# phia_geo_data <- lapply(list.files(tmp, pattern="Geospatial", full.names = TRUE), list.files, full.names=TRUE) %>%
-#   lapply(grep, pattern = "centroids.csv", value=TRUE) %>%
-#   lapply(read.csv) %>%
-#   setNames(phia_surv_name)
-#
-# phia_geo_data %>%
-#   bind_rows(.id = "surv_name")
-
-phia_dat[[4]][1, c(1:5)]
+phia_dat[[4]][1, c(1:5)] # ?
 
 ## What to do about receiving money/gifts for sex variables in PHIA surveys?
 phia_recoded <- Map(
@@ -310,4 +249,59 @@ phia_recoded <- Map(
   analysis = "sexbehav"
 )
 
-write.csv(bind_rows(phia_recoded), "~/Downloads/phia_sexbehav.csv")
+## Paddy: Again, where should this be saved?
+# write.csv(bind_rows(phia_recoded), "~/Downloads/phia_sexbehav.csv")
+
+
+#### PHIA geo data ####
+
+# create temp directory
+tmp <- tempdir()
+
+# download phia Geo zip files
+phia_geo_files <- load_sharepoint_data(path = phia_geo_path)
+
+# unzip files
+phia_geo_files <- unlist(lapply(phia_geo_files, function(x) {
+  message(x)
+  unzip(x, exdir = tmp)
+}))
+
+# subset
+phia_geo_files <- phia_geo_files[
+  grepl("Geospatial", phia_geo_files) & 
+    grepl("centroids.csv", phia_geo_files)
+]
+
+# change names to survey naems
+# names(phia_geo_files) <- stringr::str_remove_all(basename(names(phia_geo_files)), "%20")
+
+
+names(phia_geo_files) <- c(
+  "NAM2017PHIA",
+  "ZWE2015PHIA",
+  "UGA2016PHIA",
+  "SWZ2016PHIA",
+  "TZA2016PHIA",
+  "ETH2017PHIA",
+  "LSO2016PHIA",
+  "CMR2017PHIA",
+  "CIV2017PHIA",
+  "RWA2018PHIA",
+  "ZMB2016PHIA",
+  "MWI2015PHIA"
+)
+
+# load geo data
+phia_geo_data <- lapply(phia_geo_files, readr::read_csv, show_col_types = FALSE) %>% 
+  bind_rows(.id = "surv_name")
+
+# check surv_name matches centroidid
+stopifnot(
+  all(
+    substr(phia_geo_data$surv_name, 0, 2) == 
+      substr(phia_geo_data$centroidid, 0, 2)
+  )
+)
+
+## Paddy: Is phia_geo_data ever saved? Why is it pulled in?

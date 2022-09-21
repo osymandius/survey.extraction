@@ -19,25 +19,15 @@ ssa_iso3 <- c(
   "GHA", "GIN", "LBR", "NAM", "NER", "RWA", "SEN", "TZA", "UGA", "ZMB"
 )
 
-# data directory
-# dir_loc <- file.path(
-#   "~/Imperial College London/HIV Inference Group - WP - Documents/",
-#   "Circumcision coverage/raw/Survey extract"
-# )
-# file to save output in
-# save_loc <- file.path(dir_loc, "circ_recoded_dhs.rds")
-
-
 # url and site for sharepoint
 url <- Sys.getenv("SHAREPOINT_URL")
 site <- Sys.getenv("SHAREPOINT_SITE")
+
 # specific path to PHIA datasets
 phia_sharepoint_path <- "Shared Documents/Data/household surveys/PHIA/datasets/"
+
 # path to save circumcision data
-save_path <- paste0(
-  "Shared Documents/Circumcision coverage/raw/Survey extract/",
-  "circ_recoded_dhs_test.rds"
-)
+save_path <- "Shared Documents/Circumcision coverage/raw/Survey extract/"
 
 #### Load Recoding Datasets ####
 
@@ -47,12 +37,17 @@ variable_recode = readxl::read_excel(
 )
 value_recode = type.convert(readxl::read_excel(
   "data/hivdata_survey_datasets.xlsx", sheet = "value_recode", na = "NA"
-))
+), as.is = TRUE)
 
-rdhs::dhs_survey_characteristics() %>%
-  filter(grepl("circumcision", SurveyCharacteristicName))
+# pull characteristic ID for DHS surveys for circumcision data
+characteristic_id <- rdhs::dhs_survey_characteristics() %>%
+  filter(grepl("circumcision", SurveyCharacteristicName)) %>% 
+  pull(SurveyCharacteristicID)
 
-survey_has_circ <- rdhs::dhs_surveys(surveyCharacteristicIds = 59) %>%
+# Pull surveys with circumcision information
+survey_has_circ <- rdhs::dhs_surveys(
+  surveyCharacteristicIds = characteristic_id
+) %>%
   filter(!SurveyId %in% c("LB2019DHS", "GN2012DHS")) %>%
   mutate(
     survey_id = paste0(
@@ -64,8 +59,6 @@ survey_has_circ <- rdhs::dhs_surveys(surveyCharacteristicIds = 59) %>%
 # Men's recode datasets
 mrd <- rdhs::dhs_datasets(fileType = "MR", fileFormat = "FL")
 
-combined_datasets %>% filter(CountryName == "Mozambique")
-
 # Get Individual recode datasets w/ circ characteristic and bind in MR datasets
 combined_datasets <- dhs_datasets(fileType = "IR", fileFormat = "FL") %>%
   filter(SurveyId %in% dhs_surveys(surveyCharacteristicId = 11)$SurveyId) %>%
@@ -75,7 +68,7 @@ combined_datasets <- dhs_datasets(fileType = "IR", fileFormat = "FL") %>%
     # filter(SurveyId %in% survey_has_circ$SurveyId)
   ) %>%
   filter(
-    dhscc_to_iso3(DHS_CountryCode) %in% ssa_iso,
+    dhscc_to_iso3(DHS_CountryCode) %in% ssa_iso3,
     as.integer(SurveyYear) > 1999
   ) %>%
   mutate(
@@ -84,7 +77,9 @@ combined_datasets <- dhs_datasets(fileType = "IR", fileFormat = "FL") %>%
   ) %>%
   # Jeff: Variables for both medical and traditional
   filter(!survey_id %in% c("LSO2014DHS"))
-#
+
+combined_datasets %>% filter(CountryName == "Mozambique")
+
 # Jeff: Required to get around rdhs cache bug - as you will have different 
 # surveys, highly likely that you will encounter surveys that are not in the 
 # variable codebook and will be extracted/recoded incorrectly.
@@ -110,82 +105,11 @@ circ_raw <- get_datasets(combined_datasets, clear_cache = TRUE) %>%
 
 #### PHIA surveys ####
 
-tmp <- tempdir()
-
-# create connection to sharepoint folder
-sharepoint <- spud::sharepoint$new(url)
-
-# List cntry/datasets folders in PHIA sharepoint folder 
-phia_folder <- sharepoint$folder(
-  site = site, 
-  path = URLencode(phia_sharepoint_path)
-)
-cntry_folders <- phia_folder$folders()$name 
-folders_list <- lapply(cntry_folders, function(x) {
-  sharepoint$folder(
-    site = site, 
-    path = URLencode(file.path(phia_sharepoint_path, x, "/datasets"))
-  )
-})
-
-# pull urls from each folder for each file
-urls <- unlist(lapply(seq_along(folders_list), function(i) {
-  URLencode(file.path(
-    "sites", 
-    site, 
-    # path, 
-    phia_sharepoint_path,   
-    cntry_folders[[i]], 
-    "datasets/",
-    folders_list[[i]]$files()$name
-  ))
-}))
-
-# filter URL
-urls <- urls[
-  grepl("Interview", urls) & 
-    grepl("CSV).zip", urls) & 
-    !grepl("Child", urls)
-]
-
-# download files, name with urls so we know order of temp files
-files = lapply(urls, sharepoint$download)
-if (length(files) == 0) stop("No files found at supplied path")
-
-# unzip files
-lapply(files, function(x) {
-  message(x)
-  unzip(x, exdir = tmp)
-})
-
-phia_files <- list.files(tmp, full.names = TRUE)
-phia_path <- grep("adultind", phia_files, value = TRUE) 
-# Only finding 11 PHIA paths from 12. CAMPHIA is in a nested folder
-phia_path <- c(
-  phia_path, 
-  file.path(
-    tmp, 
-    "203 CAMPHIA 2017-2018 Adult Interview Dataset (CSV)/camphia2017adultind.csv"
-  )
-)
-
-phia_dat <- lapply(phia_path, function(x) {
-  dat <- readr::read_csv(x)
-  dat %>%
-    mutate(
-      across(everything(), stringr::str_trim),
-      across(
-        everything(), 
-        stringr::str_replace_all, 
-        pattern = "\\.", 
-        replacement = NA_character_
-      )
-    ) %>%
-    type.convert()
-})
+# load nested PHIA data from sharepoint
+phia_dat <- load_phia_nested_sharepoint_data(phia_sharepoint_path)
 
 # lapply(dat, function(dat) {
-#   grep(x = colnames(dat), pattern = "mc", value=TRUE)
+#   grep(x = colnames(dat), pattern = "mc", value = TRUE)
 # })
 
 names(phia_dat) <- c(
@@ -203,6 +127,9 @@ names(phia_dat) <- c(
   "ZMB2016PHIA",
   "CMR2017PHIA"
 )
+
+# check if names are assigned correctly
+check_phia_names(phia_dat)
 
 circ_raw <- c(circ_raw, phia_dat)
 
@@ -259,17 +186,17 @@ mics_file_type <- rep("mn", length(mics_dat))
 names(mics_file_type) <- names(mics_dat)
 
 
-### Extract and recode variables
+#### Extract and recode variables ####
 
-
+# relevant filetype (e.g. mr, phia, mn) for each survey
 file_type <- c(
   c(
     "Individual Recode" = "ir", 
     "Men's Recode" = "mr"
   )[combined_datasets$FileType] %>% 
-    setNames(combined_datasets$survey_id)
-  # mics_file_type,
-  # phia_file_type
+    setNames(combined_datasets$survey_id),
+  phia_file_type,
+  mics_file_type
 )
 
 circ_extracted <- Map(
@@ -279,11 +206,15 @@ circ_extracted <- Map(
   list(variable_recode),
   file_type[names(circ_raw)],
   analysis = "circ"
-  )
+)
 
-# Note on the value_recode tab of the excel file
-# There are several cases where though the variable name is custom to the survey, the value coding is the same as the default.
-# The value recode entries for those surveys can be removed, but for speed I just added them all. I'm not sure removing them is any better than leaving them in though. The size of the value recode book is immaterial.
+#' Note on the value_recode tab of the excel file
+#' There are several cases where though the variable name is custom to the 
+#' survey, the value coding is the same as the default.
+#' The value recode entries for those surveys can be removed, but for speed I 
+#' just added them all. 
+#' I'm not sure removing them is any better than leaving them in though. 
+#' The size of the value recode book is immaterial.
 circ_recoded <- Map(
   recode_survey_variables,
   df = circ_extracted,
@@ -318,29 +249,11 @@ circ_recoded_save <- purrr::compact(lapply(circ_recoded, function(x) {
 # dhs_survey_characteristics(surveyIds = dhs_surv_id) %>%
 #   filter(SurveyCharacteristicID == 59)
 
-# Need to find a way to save this to Sharepoint!
-# saveRDS(circ_recoded_save, file = save_loc)
-# save locally
-saveRDS(circ_recoded_save, file = "circ_recoded.rds")
-# save to Sharepoint using curl 
-system(
-  paste0(
-    "curl --ntlm --user ",
-    Sys.getenv("SHAREPOINT_USERNAME"),
-    ":",
-    Sys.getenv("SHAREPOINT_PASS"),
-    " --upload-file circ_recoded.rds ",
-    URLencode(paste0(
-      url,
-      "sites/",
-      site, 
-      "/",
-      save_path
-    ))
-  )
+# upload circumcision data to Sharepoint
+upload_sharepoint_data(
+  circ_recoded_save, filename = "circ_recoded.rds", save_path = save_path
 )
-# remove local file
-system("rm circ_recoded.rds")
+
 
 # int <- circ_recoded %>%
 #   bind_rows()
@@ -374,7 +287,7 @@ system("rm circ_recoded.rds")
 #          survey_id = survey_id_c,
 #          individual_id = dhs_individual_id(cluster_id, household, line)
 #   ) %>%
-#   type.convert() %>%
+#   type.convert(as.is = TRUE) %>%
 #   select(survey_id, individual_id, everything())
 #
 # debugonce(val_recode)
