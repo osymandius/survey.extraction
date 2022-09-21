@@ -274,6 +274,7 @@ phia_geo_files <- phia_geo_files[
 ]
 
 # change names to survey names
+## Paddy: Missing KEN2018PHIA survey, not sure whether this should be here
 names(phia_geo_files) <- c(
   "NAM2017PHIA",
   "ZWE2015PHIA",
