@@ -26,11 +26,6 @@ child_alive_vars <- c(paste0("b5_0", 1:9), paste0("b5_", 11:20))
 ## or b7? Age at death (months-imputed)
 child_age_death_vars <- c(paste0("b7_0", 1:9), paste0("b7_", 11:20))
 
-# data directory
-# dir_loc <- file.path(
-#   "~/Imperial College London/HIV Inference Group - WP - Documents/",
-#   "Circumcision coverage/raw/Survey extract"
-# )
 
 #### Load Recoding Datasets ####
 
