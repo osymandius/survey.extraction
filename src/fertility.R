@@ -1,10 +1,12 @@
 library(tidyverse)
 library(rdhs)
 
-source("extract_funs.R")
+source("src/extract_funs.R")
 
-variable_recode = readxl::read_excel("~/Imperial College London/HIV Inference Group - WP - Documents/Circumcision coverage/raw/Survey extract/hivdata_survey_datasets.xlsx", sheet = "variable_recode", na = "NA")
-value_recode = readxl::read_excel("~/Imperial College London/HIV Inference Group - WP - Documents/Circumcision coverage/raw/Survey extract/hivdata_survey_datasets.xlsx", sheet = "value_recode", na = "NA")
+# variable_recode = readxl::read_excel("~/Imperial College London/HIV Inference Group - WP - Documents/Circumcision coverage/raw/Survey extract/hivdata_survey_datasets.xlsx", sheet = "variable_recode", na = "NA")
+variable_recode = readxl::read_excel("data/hivdata_survey_datasets.xlsx", sheet = "variable_recode", na = "NA")
+# value_recode = readxl::read_excel("~/Imperial College London/HIV Inference Group - WP - Documents/Circumcision coverage/raw/Survey extract/hivdata_survey_datasets.xlsx", sheet = "value_recode", na = "NA")
+value_recode = readxl::read_excel("data/hivdata_survey_datasets.xlsx", sheet = "value_recode", na = "NA")
 
 ssa_iso3 <- sort(c("BDI", "BEN", "BFA", "CAF", "CIV", "CMR", "COD", "COG", "GMB", "KEN", "LSO", "MLI", "MOZ", "MWI", "NGA", "SLE", "SWZ", "TCD", "TGO", "ZWE", "AGO", "ETH", "GAB", "GHA", "GIN", "LBR", "NAM", "NER", "RWA", "SEN", "TZA", "UGA", "ZMB"))
 
