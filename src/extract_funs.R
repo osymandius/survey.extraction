@@ -278,14 +278,21 @@ recode_survey_variables <- function(
 
 # function to load data from specific dir on sharepoint
 load_sharepoint_data <- function(
-  path, pattern = NULL, group = Sys.getenv("SHAREPOINT_SITE")
+  path, 
+  pattern  = NULL, 
+  url      = Sys.getenv("SHAREPOINT_URL"),
+  site     = Sys.getenv("SHAREPOINT_SITE"),
+  load_fun = NULL 
 ) {
   
-  # List files in folder
-  folder <- sharepoint$folder(group, URLencode(path))
+  # create connection to Sharepoint
+  sharepoint <- spud::sharepoint$new(url)
+  
+  # List files in sharepoint folder 
+  folder <- sharepoint$folder(site = site, path = URLencode(path))
   
   # pull urls for each file
-  urls <- URLencode(file.path("sites", group, path, folder$files()$name))
+  urls <- URLencode(file.path("sites", site, path, folder$files()$name))
   
   # may only require certain files 
   if (!is.null(pattern)) {
@@ -297,6 +304,9 @@ load_sharepoint_data <- function(
   files = lapply(urls, sharepoint$download)
   if (length(files) == 0) stop("No files found at supplied path")
   names(files) <- basename(urls)
+  
+  # if desired, can specify function to load files with (e.g. readRDS)
+  if (!is.null(load_fun)) files <- lapply(files, load_fun)
   
   return(files)
 }
