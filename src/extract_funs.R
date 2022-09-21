@@ -27,16 +27,18 @@ dhscc_to_iso3 <- function(dhscc) {
 recode_mics_id_vars <- function(variable_recode, survey_id_c, dataset_type) {
 
   # Find custom var names associated with this survey ID & dataset type
-  custom_recode <- filter(
-    variable_recode, survey_id == survey_id_c, dataset == dataset_type
-  )
+  custom_recode <- variable_recode %>% 
+    filter(
+      survey_id == survey_id_c, 
+      dataset == dataset_type
+    )
 
   # Find default var names for MICS surveys and the specified dataset type
-  default_recode <- filter(
-    variable_recode, 
-    survey_id == "_default_mics",
-    dataset == dataset_type
-  )
+  default_recode <- variable_recode %>% 
+    filter(
+      survey_id == "_default_mics",
+      dataset == dataset_type
+    )
 
   variable_df <- data.frame(variable = c("cluster_id", "household", "line"))
 
@@ -79,7 +81,7 @@ extract_survey_vars <- function(
   
   message(survey_id_c)
 
-  surv_type <- substr(survey_id_c, 8, str_length(survey_id_c))
+  surv_type <- substr(survey_id_c, 8, stringr::str_length(survey_id_c))
 
   ## If individual ID is to be used as primary key - this needs editing
   if (surv_type %in% c("DHS", "AIS", "MIS")) {
@@ -130,7 +132,7 @@ extract_survey_vars <- function(
   variable_df <- variable_recode %>%
     filter(
       analysis == analysis_c,
-      str_detect(survey_id, "_default")
+      stringr::str_detect(survey_id, "_default")
     ) %>%
     distinct(variable) %>%
     left_join(custom_recode, by = "variable")
@@ -185,7 +187,7 @@ val_recode <- function(col, col_name, survey_id_c, dataset_type, analysis_c) {
     value_recode$value <- as.numeric(value_recode$value)
   }
 
-  surv_type <- substr(survey_id_c, 8, str_length(survey_id_c))
+  surv_type <- substr(survey_id_c, 8, stringr::str_length(survey_id_c))
 
   # Required because the AIS default variables are from _default_dhs
   if (surv_type == "AIS") {
@@ -237,16 +239,14 @@ recode_survey_variables <- function(
   
   message(survey_id_c)
 
-  surv_type <- substr(survey_id_c, 8, str_length(survey_id_c))
-  if (surv_type == "AIS") {
-    surv_type <- "DHS"
-  }
+  surv_type <- substr(survey_id_c, 8, stringr::str_length(survey_id_c))
+  if (surv_type == "AIS") surv_type <- "DHS"
   
   recode_columns <- value_recode %>% 
     filter(
       survey_id == paste0("_default_", tolower(surv_type)),
-      dataset == dataset_type,
-      analysis == analysis_c
+      dataset   == dataset_type,
+      analysis  == analysis_c
     ) %>% 
     distinct(variable) %>% 
     pull() %>% 
@@ -255,8 +255,8 @@ recode_survey_variables <- function(
   survey_specific_columns <- value_recode %>% 
     filter(
       survey_id == survey_id_c,
-      dataset == dataset_type,
-      analysis == analysis_c
+      dataset   == dataset_type,
+      analysis  == analysis_c
     ) %>% 
     distinct(variable) %>% 
     pull() 
