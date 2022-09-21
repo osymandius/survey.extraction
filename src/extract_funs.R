@@ -275,3 +275,28 @@ recode_survey_variables <- function(
     type.convert() %>%
     select(survey_id, individual_id, everything())
 }
+
+# function to load data from specific dir on sharepoint
+load_sharepoint_data <- function(
+  path, pattern = NULL, group = Sys.getenv("SHAREPOINT_SITE")
+) {
+  
+  # List files in folder
+  folder <- sharepoint$folder(group, URLencode(path))
+  
+  # pull urls for each file
+  urls <- URLencode(file.path("sites", group, path, folder$files()$name))
+  
+  # may only require certain files 
+  if (!is.null(pattern)) {
+    # only want cluster, individuals and circumcision data
+    urls <- urls[grepl(pattern, urls)]
+  }
+  
+  # download files, name with urls so we know order of temp files
+  files = lapply(urls, sharepoint$download)
+  if (length(files) == 0) stop("No files found at supplied path")
+  names(files) <- basename(urls)
+  
+  return(files)
+}
