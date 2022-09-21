@@ -29,6 +29,10 @@ phia_sharepoint_path <- "Shared Documents/Data/household surveys/PHIA/datasets/"
 # path to save circumcision data
 save_path <- "Shared Documents/Circumcision coverage/raw/Survey extract/"
 
+variable_recode = readxl::read_excel("data/hivdata_survey_datasets.xlsx", sheet = "variable_recode", na = "NA")
+value_recode = readxl::read_excel("data/hivdata_survey_datasets.xlsx", sheet = "value_recode", na = "NA")
+
+
 #### Load Recoding Datasets ####
 
 # recoding excel sheet
