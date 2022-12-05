@@ -2,10 +2,93 @@ hello
 library(tidyverse)
 library(rdhs)
 
-source("src/extract_funs.R")
+source("C:/Users/rla121/OneDrive - Imperial College London/Documents/GitHub/survey-extraction/src/extract_funs.R")
 
 ssa_iso3 <- c("BDI", "BEN", "BFA", "CIV", "CMR", "COD", "COG", "GMB", "KEN", "LSO", "MLI", "MOZ", "MWI", "NGA", "SLE", "SWZ", "TCD", "TGO", "ZWE", "AGO", "ETH", "GAB", "GHA", "GIN", "LBR", "NAM", "NER", "RWA", "SEN", "TZA", "UGA", "ZMB")
 
+new_extract_fun <- function(df, survey_id_c, variable_recode) {
+  
+  message(survey_id_c)
+  
+  custom_recode <- filter(variable_recode, survey_id == survey_id_c)
+  
+  variable_df <- variable_recode %>%
+    
+    distinct(variable) %>%
+    left_join(custom_recode, by="variable") %>% 
+    filter(!is.na(var_raw))
+  
+  
+  opt_var <- filter(variable_df)$var_raw %>% setNames(filter(variable_df)$variable)
+  
+  
+  df <- df %>% 
+    select(any_of(opt_var))
+  
+}
+### Recoding vars 
+      ## Analysis and file_type redundant for the time being
+recoding_sheet <-  read_csv("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/00Admin/recoding_sheet.csv")
+
+variable_recode <- recoding_sheet %>% 
+  select(survey_id, variable, var_raw, study_type) %>% 
+  rename(var_label_raw = var_raw) %>% 
+  mutate(survey_id2 = survey_id) %>% 
+  separate(survey_id2, c(NA, "file_type")) %>% 
+  distinct() %>%
+  mutate(analysis = "kp") %>% 
+  filter(!variable == "cdm_location") %>% 
+  rename(var_raw = var_label_raw)
+
+variable_recode$file_type[variable_recode$file_type == "PLACE"] <- "all"
+
+
+value_recode <- recoding_sheet %>% 
+  rename(value = val_recode)
+
+
+#survey_id <- variable_recode$survey_id
+
+#### Surveys to be recoded
+
+paths <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = paste(survey_id, collapse = "|"), full.names = FALSE, recursive = TRUE)
+
+combined_datasets <- lapply(files, readRDS)
+
+## Sample survey for trialling functions
+
+path2 <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = "BEN2002BBS_FSW.rds", full.names = TRUE, recursive = TRUE)
+bendat <- lapply(path2, readRDS)
+
+wow <-  new_extract_fun(bendat[[1]], "BEN2002BBS_FSW", variable_recode)
+
+wow2 <- wow %>%
+  mutate(cdm_last_paid = as.numeric(cdm_last_paid),
+         cdm_last_paid = new_val_recode(cdm_last_paid, "cdm_last_paid", "BEN2002BBS_FSW"))
+
+#### This is doing weird things.... the recoded datasets are in there amongst the chaos, I think. But the warning is an issue. 
+all_extracted <- combined_datasets %>%
+  Map(new_extract_fun,
+      df = .,
+      survey_id = survey_id,
+      list(variable_recode)
+      )
+
+
+
+
+
+debugonce(new_extract_fun)
+circ_extracted <- combined_datasets %>%
+  Map(extract_survey_vars,
+      df = .,
+      survey_id = combined_datasets$survey,
+      list(variable_recode),
+      file_type[keypop],
+      analysis = "kp")
+
+
+variable_recode = variable_recode
 variable_recode = readxl::read_excel("data/hivdata_survey_datasets.xlsx", sheet = "variable_recode", na = "NA")
 value_recode = readxl::read_excel("data/hivdata_survey_datasets.xlsx", sheet = "value_recode", na = "NA")
 
