@@ -26,6 +26,44 @@ new_extract_fun <- function(df, survey_id_c, variable_recode) {
     select(any_of(opt_var))
   
 }
+
+
+new_val_recode <- function(col, col_name, survey_id_c) {
+  
+  value_recode <- value_recode %>%
+    filter(variable == col_name,
+           survey_id == survey_id_c)
+  
+  if(!length(value_recode$value[!value_recode$value %in% c(0:9, NA)]))
+    value_recode$value <- as.numeric(value_recode$value)
+  
+
+  vec <- value_recode$value
+  names(vec) <- value_recode$val_raw
+
+  recode(col, !!!vec)
+  
+}
+
+new_recode_survey_variables <- function(df, survey_id_c, value_recode) {
+  
+  message(survey_id_c)
+  
+  recode_columns <- unique(filter(value_recode, 
+                                  survey_id == survey_id_c)$variable 
+  )
+
+  df <- df %>%
+    mutate(across(everything(), as.numeric),
+           across(any_of(recode_columns), ~new_val_recode(.x, cur_column(), survey_id_c)),
+           survey_id = survey_id_c
+    ) %>%
+    type.convert() %>%
+    select(survey_id, everything())
+  
+}
+
+
 ### Recoding vars 
       ## Analysis and file_type redundant for the time being
 recoding_sheet <-  read_csv("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/00Admin/recoding_sheet.csv")
@@ -55,16 +93,18 @@ paths <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group
 
 combined_datasets <- lapply(files, readRDS)
 
-## Sample survey for trialling functions
+## Sample survey for trialing functions
 
 path2 <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = "BEN2002BBS_FSW.rds", full.names = TRUE, recursive = TRUE)
 bendat <- lapply(path2, readRDS)
-
+## Trying new_extract_fun
 wow <-  new_extract_fun(bendat[[1]], "BEN2002BBS_FSW", variable_recode)
-
+## Trying new_val_recode
 wow2 <- wow %>%
   mutate(cdm_last_paid = as.numeric(cdm_last_paid),
          cdm_last_paid = new_val_recode(cdm_last_paid, "cdm_last_paid", "BEN2002BBS_FSW"))
+## Trying new_recode_survey_variables
+wow3 <- new_recode_survey_variables(wow2, "BEN2002BBS_FSW", value_recode)
 
 #### This is doing weird things.... the recoded datasets are in there amongst the chaos, I think. But the warning is an issue. 
 all_extracted <- combined_datasets %>%
@@ -73,8 +113,6 @@ all_extracted <- combined_datasets %>%
       survey_id = survey_id,
       list(variable_recode)
       )
-
-
 
 
 
