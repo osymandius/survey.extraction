@@ -169,6 +169,13 @@ wow2 <- wow %>%
 wow3 <- new_recode_survey_variables(wow, "BEN2002BBS_FSW", value_recode)
 placevals <- new_recode_survey_variables(place_recode, "AGO2018PLACE_TGW", value_recode)
 
+### Trying RDS -> this is not working --> going wrong with new_recode_survey_variables - it's not dealing with strings very well. 
+swzpath <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = "SWZ2020BBS_FSW.rds", full.names = TRUE, recursive = TRUE)
+swzdat <- lapply(swzpath, readRDS)
+swzwow <- new_extract_fun(swzdat[[1]], "SWZ2020BBS_FSW", variable_recode)
+swzwow2 <- new_recode_survey_variables(swzwow, "SWZ2020BBS_FSW", value_recode)
+rds_trial <- rds_adjust(swzwow2, "SWZ2020BBS_FSW")
+
 #### Surveys to be recoded
 
 paths <- intersect(list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = paste(survey_id, collapse = "|")  , full.names = TRUE, recursive = TRUE), list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = ".rds"  , full.names = TRUE, recursive = TRUE))
