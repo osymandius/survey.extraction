@@ -1,4 +1,4 @@
-hello
+library(RDS)
 library(tidyverse)
 library(rdhs)
 
@@ -181,7 +181,8 @@ rds_adjust <- function(df, survey_id_c) {
 
 ### Recoding vars / values
       ## Analysis and file_type redundant for the time being
-recoding_sheet <-  read_csv("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/00Admin/recoding_sheet.csv")
+#recoding_sheet <-  read_csv("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/00Admin/recoding_sheet.csv")
+recoding_sheet <-  read_csv("~/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/00Admin/recoding_sheet.csv")
 
 variable_recode <- recoding_sheet %>% 
   select(survey_id, variable, var_raw, study_type) %>% 
@@ -207,13 +208,16 @@ value_recode <- recoding_sheet %>%
 
 ## Sample survey for trialing functions
 
-path2 <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = "BEN2002BBS_FSW.rds", full.names = TRUE, recursive = TRUE)
+#path2 <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = "BEN2002BBS_FSW.rds", full.names = TRUE, recursive = TRUE)
+path2 <- list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = "BEN2002BBS_FSW.rds", full.names = TRUE, recursive = TRUE)
+
 bendat <- lapply(path2, readRDS)
 ## Trying new_extract_fun
 wow <-  new_extract_fun(bendat[[1]], "BEN2002BBS_FSW", variable_recode)
 
       ## Trying for PLACE 
-      placepath <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = "AGO2018PLACE_TGW.rds", full.names = TRUE, recursive = TRUE)
+      #placepath <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = "AGO2018PLACE_TGW.rds", full.names = TRUE, recursive = TRUE)
+      placepath <- list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = "AGO2018PLACE_TGW.rds", full.names = TRUE, recursive = TRUE)
       placedat <- lapply(placepath, readRDS)
       place_recode <- new_extract_fun(placedat[[1]], "AGO2018PLACE_TGW", variable_recode)
 ## Trying new_val_recode
@@ -225,7 +229,9 @@ wow3 <- new_recode_survey_variables(wow, "BEN2002BBS_FSW", value_recode)
 placevals <- new_recode_survey_variables(place_recode, "AGO2018PLACE_TGW", value_recode)
 
 ### Trying RDS -> this is not working --> going wrong with new_recode_survey_variables - it's not dealing with strings very well. 
-swzpath <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = "SWZ2020BBS_FSW.rds", full.names = TRUE, recursive = TRUE)
+#swzpath <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = "SWZ2020BBS_FSW.rds", full.names = TRUE, recursive = TRUE)
+swzpath <- list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = "SWZ2020BBS_FSW.rds", full.names = TRUE, recursive = TRUE)
+
 swzdat <- lapply(swzpath, readRDS)
 swzwow <- new_extract_fun(swzdat[[1]], "SWZ2020BBS_FSW", variable_recode)
 swzwow2 <- new_recode_survey_variables(swzwow, "SWZ2020BBS_FSW", value_recode)
@@ -233,11 +239,13 @@ rds_trial <- rds_adjust(swzwow2, "SWZ2020BBS_FSW")
 
 #### Surveys to be recoded
 
-paths <- intersect(list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = paste(survey_id, collapse = "|")  , full.names = TRUE, recursive = TRUE), list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = ".rds"  , full.names = TRUE, recursive = TRUE))
+#paths <- intersect(list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = paste(survey_id, collapse = "|")  , full.names = TRUE, recursive = TRUE), list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = ".rds"  , full.names = TRUE, recursive = TRUE))
+
+paths <- intersect(list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = paste(survey_id, collapse = "|")  , full.names = TRUE, recursive = TRUE), list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = ".rds"  , full.names = TRUE, recursive = TRUE))
 
 combined_datasets <- lapply(paths, readRDS)
 
-#### This is doing weird things.... the recoded datasets are in there amongst the chaos, I think. But the warning is an issue. 
+#### This is doing weird things.... the recoded datasets are in there amongst the chaos, I think. 
 all_extracted <- combined_datasets %>%
   Map(new_extract_fun,
       df = .,
