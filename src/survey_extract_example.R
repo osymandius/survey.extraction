@@ -124,6 +124,61 @@ new_recode_survey_variables <- function(df, survey_id_c, value_recode) {
   }
 }
 
+
+### Slimmed down rds weighting --> will update this to include the code that breaks down things like age to individual levles.
+  ## will also roll into new_recode_survey_variables I think
+rds_adjust <- function(df, survey_id_c) {
+  
+  message(survey_id_c)
+  
+  surv_type <- str_sub(survey_id_c, 8, -5)
+  
+  if (surv_type=="BBS") {
+    
+    nboot <- 30
+    
+    vars <- colnames(df)
+    #df <- df %>% 
+    #filter(!is.na(subject_id))
+    
+    df$recruiter.id <- rid.from.coupons(df, subject.id='own_coupon', 
+                                        subject.coupon='own_coupon', 
+                                        coupon.variables=c("coupon1","coupon2","coupon3"))
+    
+    df <- as.rds.data.frame(df, id='own_coupon', 
+                            recruiter.id='recruiter.id',
+                            network.size='network_size',
+                            population.size=c(NA,NA,NA), 
+                            max.coupons=3, notes=NULL)
+    
+    df$seed <- get.seed.id(df)
+    df$wave <- get.wave(df)
+    
+    
+    df <- lapply(vars, function(x) {
+      
+      freq <- RDS.bootstrap.intervals(df, outcome.variable=x,
+                                      weight.type="RDS-II", uncertainty="Salganik", 
+                                      confidence.level=0.95, 
+                                      number.of.bootstrap.samples=nboot)
+      
+      cat <- length(freq$estimate)
+      
+      df <- data.frame(matrix(freq$interval, nrow = cat))
+      colnames(df) <- c("estimate", "lower", "upper", "des_effect", "se", "n")
+      
+      df$category <- attr(freq$estimate, "names")
+      
+      df$var <- x
+      
+      df
+    }) %>%
+      bind_rows()
+    
+  }
+  
+}
+
 ### Recoding vars / values
       ## Analysis and file_type redundant for the time being
 recoding_sheet <-  read_csv("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/00Admin/recoding_sheet.csv")
@@ -190,8 +245,8 @@ all_extracted <- combined_datasets %>%
       list(variable_recode)
       )
 
-all_extracted <- lapply(combined_datasets, new_extract_fun(df = ., (variable_recode)))
 
+########################## old DHS #################################
 debugonce(new_extract_fun)
 circ_extracted <- combined_datasets %>%
   Map(extract_survey_vars,
