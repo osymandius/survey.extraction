@@ -1,6 +1,10 @@
 new_extract_fun <- function(df, survey_id_c, variable_recode) {
   
   message(survey_id_c)
+  
+  if(!survey_id_c %in% variable_recode$survey_id)
+    stop("No survey found in recode sheet")
+  
   surv_type <- str_sub(survey_id_c, 8, -5)
   
   if(surv_type == "PLACE") {
@@ -37,7 +41,8 @@ new_extract_fun <- function(df, survey_id_c, variable_recode) {
     
     
     df <- df %>% 
-      select(any_of(opt_var))
+      mutate(survey_id = survey_id_c) %>%
+      select(survey_id, any_of(opt_var))
     
   }
 }
@@ -106,11 +111,12 @@ new_recode_survey_variables <- function(df, survey_id_c, value_recode) {
     )
     
     df <- df %>%
-      mutate(across(everything(), as.numeric),
+      mutate(
+        # across(everything(), as.numeric),
              across(any_of(recode_columns), ~new_val_recode(.x, cur_column(), survey_id_c)),
              survey_id = survey_id_c 
       ) %>%
-      type.convert() %>%
+      type.convert(as.is = TRUE) %>%
       select(survey_id, everything())
     
   }

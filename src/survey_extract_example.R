@@ -2,187 +2,14 @@ library(RDS)
 library(tidyverse)
 library(rdhs)
 
-source("C:/Users/rla121/OneDrive - Imperial College London/Documents/GitHub/survey-extraction/src/extract_funs.R")
+source("~/Documents/GitHub/survey-extraction/src/kp_recoding_functions.R")
 
 ssa_iso3 <- c("BDI", "BEN", "BFA", "CIV", "CMR", "COD", "COG", "GMB", "KEN", "LSO", "MLI", "MOZ", "MWI", "NGA", "SLE", "SWZ", "TCD", "TGO", "ZWE", "AGO", "ETH", "GAB", "GHA", "GIN", "LBR", "NAM", "NER", "RWA", "SEN", "TZA", "UGA", "ZMB")
-
-new_extract_fun <- function(df, survey_id_c, variable_recode) {
-  
-  message(survey_id_c)
-  surv_type <- str_sub(survey_id_c, 8, -5)
-  
-  if(surv_type == "PLACE") {
-    
-    
-    custom_recode <- filter(variable_recode, survey_id == str_sub(survey_id_c, end = -5))
-    
-    variable_df <- variable_recode %>%
-      
-      distinct(variable) %>%
-      left_join(custom_recode, by="variable") %>% 
-      filter(!is.na(var_raw))
-    
-    
-    opt_var <- filter(variable_df)$var_raw %>% setNames(filter(variable_df)$variable)
-    
-    
-    df <- df %>% 
-      select(any_of(opt_var))
-    
-  }
-  else if (surv_type == "BBS" | surv_type == "ACA")
-  {
-    custom_recode <- filter(variable_recode, survey_id == survey_id_c)
-    
-    variable_df <- variable_recode %>%
-      
-      distinct(variable) %>%
-      left_join(custom_recode, by="variable") %>% 
-      filter(!is.na(var_raw))
-    
-    
-    opt_var <- filter(variable_df)$var_raw %>% setNames(filter(variable_df)$variable)
-    
-    
-    df <- df %>% 
-      select(any_of(opt_var))
-    
-  }
-}
-
-
-new_val_recode <- function(col, col_name, survey_id_c) {
-  
-  surv_type <- str_sub(survey_id_c, 8, -5)
-  if (surv_type == "PLACE") {
-    value_recode <- value_recode %>%
-      filter(variable == col_name,
-             survey_id == str_sub(survey_id_c, end = -5))
-    
-    if(!length(value_recode$value[!value_recode$value %in% c(0:9, NA)]))
-      value_recode$value <- as.numeric(value_recode$value)
-    
-    vec <- value_recode$value
-    names(vec) <- value_recode$val_raw
-    
-    recode(col, !!!vec)
-  }
-  
-  else if (surv_type == "BBS" | surv_type == "ACA") {
-    
-    value_recode <- value_recode %>%
-      filter(variable == col_name,
-             survey_id == survey_id_c)
-    
-    if(!length(value_recode$value[!value_recode$value %in% c(0:9, NA)]))
-      value_recode$value <- as.numeric(value_recode$value)
-    
-    vec <- value_recode$value
-    names(vec) <- value_recode$val_raw
-    
-    recode(col, !!!vec)
-    
-  }
-}
-
-new_recode_survey_variables <- function(df, survey_id_c, value_recode) {
-  
-  message(survey_id_c)
-  
-  surv_type <- str_sub(survey_id_c, 8, -5)
-  
-  if(surv_type == "PLACE") {
-    
-    recode_columns <- unique(filter(value_recode, survey_id == str_sub(survey_id_c, end = -5))$variable 
-    )
-    
-    
-    df <- df %>%
-      mutate(across(everything(), as.numeric),
-             across(any_of(recode_columns), ~new_val_recode(.x, cur_column(), survey_id_c)),
-             survey_id = survey_id_c 
-      ) %>%
-      type.convert() %>%
-      select(survey_id, everything())
-    
-  }
-  
-  else if (surv_type == "BBS" | surv_type == "ACA")
-  {
-    recode_columns <- unique(filter(value_recode, survey_id == survey_id_c)$variable
-                            
-    )
-    
-    df <- df %>%
-      mutate(across(everything(), as.numeric),
-             across(any_of(recode_columns), ~new_val_recode(.x, cur_column(), survey_id_c)),
-             survey_id = survey_id_c 
-      ) %>%
-      type.convert() %>%
-      select(survey_id, everything())
-    
-  }
-}
-
-
-### Slimmed down rds weighting --> will update this to include the code that breaks down things like age to individual levles.
-  ## will also roll into new_recode_survey_variables I think
-rds_adjust <- function(df, survey_id_c) {
-  
-  message(survey_id_c)
-  
-  surv_type <- str_sub(survey_id_c, 8, -5)
-  
-  if (surv_type=="BBS") {
-    
-    nboot <- 30
-    
-    vars <- colnames(df)
-    #df <- df %>% 
-    #filter(!is.na(subject_id))
-    
-    df$recruiter.id <- rid.from.coupons(df, subject.id='own_coupon', 
-                                        subject.coupon='own_coupon', 
-                                        coupon.variables=c("coupon1","coupon2","coupon3"))
-    
-    df <- as.rds.data.frame(df, id='own_coupon', 
-                            recruiter.id='recruiter.id',
-                            network.size='network_size',
-                            population.size=c(NA,NA,NA), 
-                            max.coupons=3, notes=NULL)
-    
-    df$seed <- get.seed.id(df)
-    df$wave <- get.wave(df)
-    
-    
-    df <- lapply(vars, function(x) {
-      
-      freq <- RDS.bootstrap.intervals(df, outcome.variable=x,
-                                      weight.type="RDS-II", uncertainty="Salganik", 
-                                      confidence.level=0.95, 
-                                      number.of.bootstrap.samples=nboot)
-      
-      cat <- length(freq$estimate)
-      
-      df <- data.frame(matrix(freq$interval, nrow = cat))
-      colnames(df) <- c("estimate", "lower", "upper", "des_effect", "se", "n")
-      
-      df$category <- attr(freq$estimate, "names")
-      
-      df$var <- x
-      
-      df
-    }) %>%
-      bind_rows()
-    
-  }
-  
-}
 
 ### Recoding vars / values
       ## Analysis and file_type redundant for the time being
 #recoding_sheet <-  read_csv("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/00Admin/recoding_sheet.csv")
-recoding_sheet <-  read_csv("~/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/00Admin/recoding_sheet.csv")
+recoding_sheet <-  read_csv("~/Downloads/recoding_sheet.csv")
 
 variable_recode <- recoding_sheet %>% 
   select(survey_id, variable, var_raw, study_type) %>% 
@@ -194,14 +21,12 @@ variable_recode <- recoding_sheet %>%
   filter(!variable == "cdm_location") %>% 
   rename(var_raw = var_label_raw)
 
-variable_recode$file_type[variable_recode$file_type == "PLACE"] <- "all"
+# variable_recode$file_type[variable_recode$file_type == "PLACE"] <- "all"
 
 
 value_recode <- recoding_sheet %>% 
   rename(value = val_recode) %>% 
-  filter(!is.na(val_raw)) %>% 
-  mutate(value = ifelse())
-
+  filter(!is.na(val_raw))
 
 #survey_id <- variable_recode$survey_id
 
@@ -215,11 +40,12 @@ bendat <- lapply(path2, readRDS)
 ## Trying new_extract_fun
 wow <-  new_extract_fun(bendat[[1]], "BEN2002BBS_FSW", variable_recode)
 
-      ## Trying for PLACE 
-      #placepath <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = "AGO2018PLACE_TGW.rds", full.names = TRUE, recursive = TRUE)
-      placepath <- list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = "AGO2018PLACE_TGW.rds", full.names = TRUE, recursive = TRUE)
-      placedat <- lapply(placepath, readRDS)
-      place_recode <- new_extract_fun(placedat[[1]], "AGO2018PLACE_TGW", variable_recode)
+## Trying for PLACE 
+#placepath <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = "AGO2018PLACE_TGW.rds", full.names = TRUE, recursive = TRUE)
+placepath <- list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = "AGO2018PLACE_TGW.rds", full.names = TRUE, recursive = TRUE)
+placedat <- lapply(placepath, readRDS)
+place_recode <- new_extract_fun(placedat[[1]], "AGO2018PLACE_TGW", variable_recode)
+
 ## Trying new_val_recode
 wow2 <- wow %>%
   mutate(cdm_last_paid = as.numeric(cdm_last_paid),
@@ -234,6 +60,7 @@ swzpath <- list.files("~/Imperial College London/HIV Inference Group - WP - Docu
 
 swzdat <- lapply(swzpath, readRDS)
 swzwow <- new_extract_fun(swzdat[[1]], "SWZ2020BBS_FSW", variable_recode)
+# debugonce(new_recode_survey_variables)
 swzwow2 <- new_recode_survey_variables(swzwow, "SWZ2020BBS_FSW", value_recode)
 rds_trial <- rds_adjust(swzwow2, "SWZ2020BBS_FSW")
 
@@ -241,18 +68,43 @@ rds_trial <- rds_adjust(swzwow2, "SWZ2020BBS_FSW")
 
 #paths <- intersect(list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = paste(survey_id, collapse = "|")  , full.names = TRUE, recursive = TRUE), list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = ".rds"  , full.names = TRUE, recursive = TRUE))
 
-paths <- intersect(list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = paste(survey_id, collapse = "|")  , full.names = TRUE, recursive = TRUE), list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = ".rds"  , full.names = TRUE, recursive = TRUE))
+paths <- intersect(list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = paste(unique(variable_recode$survey_id), collapse = "|")  , full.names = TRUE, recursive = TRUE), list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = ".rds"  , full.names = TRUE, recursive = TRUE))
+
+paths <- list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", recursive = TRUE, pattern = ".rds", full.names = TRUE) %>%
+  lapply(., grep, pattern= "code", value = TRUE, invert = TRUE) %>%
+  unlist()
+  
 
 combined_datasets <- lapply(paths, readRDS)
+
+short_paths <- list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", recursive = TRUE, pattern = ".rds") %>%
+  lapply(., grep, pattern= "code", value = TRUE, invert = TRUE) %>%
+  unlist()
+
+surv_ids <- short_paths %>%
+  str_split("/") %>%
+  lapply("[[", 2) %>%
+  unlist()
+
+names(combined_datasets) <- surv_ids
+
+
 
 #### This is doing weird things.... the recoded datasets are in there amongst the chaos, I think. 
 all_extracted <- combined_datasets %>%
   Map(new_extract_fun,
       df = .,
-      survey_id = survey_id,
+      survey_id = names(.),
       list(variable_recode)
       )
 
+all_extracted[["BEN2005BBS_FSW"]]
+
+all_recoded <- all_extracted %>%
+  Map(new_recode_survey_variables,
+      df = .,
+      survey_id = names(.),
+      list(value_recode))
 
 ########################## old DHS #################################
 debugonce(new_extract_fun)
