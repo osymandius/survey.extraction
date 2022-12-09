@@ -9,62 +9,122 @@ ssa_iso3 <- c("BDI", "BEN", "BFA", "CIV", "CMR", "COD", "COG", "GMB", "KEN", "LS
 new_extract_fun <- function(df, survey_id_c, variable_recode) {
   
   message(survey_id_c)
+  surv_type <- str_sub(survey_id_c, 8, -5)
   
-  custom_recode <- filter(variable_recode, survey_id == survey_id_c)
-  
-  variable_df <- variable_recode %>%
+  if(surv_type == "PLACE") {
     
-    distinct(variable) %>%
-    left_join(custom_recode, by="variable") %>% 
-    filter(!is.na(var_raw))
-  
-  
-  opt_var <- filter(variable_df)$var_raw %>% setNames(filter(variable_df)$variable)
-  
-  
-  df <- df %>% 
-    select(any_of(opt_var))
-  
+    
+    custom_recode <- filter(variable_recode, survey_id == str_sub(survey_id_c, end = -5))
+    
+    variable_df <- variable_recode %>%
+      
+      distinct(variable) %>%
+      left_join(custom_recode, by="variable") %>% 
+      filter(!is.na(var_raw))
+    
+    
+    opt_var <- filter(variable_df)$var_raw %>% setNames(filter(variable_df)$variable)
+    
+    
+    df <- df %>% 
+      select(any_of(opt_var))
+    
+  }
+  else if (surv_type == "BBS" | surv_type == "ACA")
+  {
+    custom_recode <- filter(variable_recode, survey_id == survey_id_c)
+    
+    variable_df <- variable_recode %>%
+      
+      distinct(variable) %>%
+      left_join(custom_recode, by="variable") %>% 
+      filter(!is.na(var_raw))
+    
+    
+    opt_var <- filter(variable_df)$var_raw %>% setNames(filter(variable_df)$variable)
+    
+    
+    df <- df %>% 
+      select(any_of(opt_var))
+    
+  }
 }
 
 
 new_val_recode <- function(col, col_name, survey_id_c) {
   
-  value_recode <- value_recode %>%
-    filter(variable == col_name,
-           survey_id == survey_id_c)
+  surv_type <- str_sub(survey_id_c, 8, -5)
+  if (surv_type == "PLACE") {
+    value_recode <- value_recode %>%
+      filter(variable == col_name,
+             survey_id == str_sub(survey_id_c, end = -5))
+    
+    if(!length(value_recode$value[!value_recode$value %in% c(0:9, NA)]))
+      value_recode$value <- as.numeric(value_recode$value)
+    
+    vec <- value_recode$value
+    names(vec) <- value_recode$val_raw
+    
+    recode(col, !!!vec)
+  }
   
-  if(!length(value_recode$value[!value_recode$value %in% c(0:9, NA)]))
-    value_recode$value <- as.numeric(value_recode$value)
-  
-
-  vec <- value_recode$value
-  names(vec) <- value_recode$val_raw
-
-  recode(col, !!!vec)
-  
+  else if (surv_type == "BBS" | surv_type == "ACA") {
+    
+    value_recode <- value_recode %>%
+      filter(variable == col_name,
+             survey_id == survey_id_c)
+    
+    if(!length(value_recode$value[!value_recode$value %in% c(0:9, NA)]))
+      value_recode$value <- as.numeric(value_recode$value)
+    
+    vec <- value_recode$value
+    names(vec) <- value_recode$val_raw
+    
+    recode(col, !!!vec)
+    
+  }
 }
 
 new_recode_survey_variables <- function(df, survey_id_c, value_recode) {
   
   message(survey_id_c)
   
-  recode_columns <- unique(filter(value_recode, 
-                                  survey_id == survey_id_c)$variable 
-  )
-
-  df <- df %>%
-    mutate(across(everything(), as.numeric),
-           across(any_of(recode_columns), ~new_val_recode(.x, cur_column(), survey_id_c)),
-           survey_id = survey_id_c
-    ) %>%
-    type.convert() %>%
-    select(survey_id, everything())
+  surv_type <- str_sub(survey_id_c, 8, -5)
   
+  if(surv_type == "PLACE") {
+    
+    recode_columns <- unique(filter(value_recode, survey_id == str_sub(survey_id_c, end = -5))$variable 
+    )
+    
+    
+    df <- df %>%
+      mutate(across(everything(), as.numeric),
+             across(any_of(recode_columns), ~new_val_recode(.x, cur_column(), survey_id_c)),
+             survey_id = survey_id_c 
+      ) %>%
+      type.convert() %>%
+      select(survey_id, everything())
+    
+  }
+  
+  else if (surv_type == "BBS" | surv_type == "ACA")
+  {
+    recode_columns <- unique(filter(value_recode, survey_id == survey_id_c)$variable
+                            
+    )
+    
+    df <- df %>%
+      mutate(across(everything(), as.numeric),
+             across(any_of(recode_columns), ~new_val_recode(.x, cur_column(), survey_id_c)),
+             survey_id = survey_id_c 
+      ) %>%
+      type.convert() %>%
+      select(survey_id, everything())
+    
+  }
 }
 
-
-### Recoding vars 
+### Recoding vars / values
       ## Analysis and file_type redundant for the time being
 recoding_sheet <-  read_csv("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/00Admin/recoding_sheet.csv")
 
@@ -82,16 +142,13 @@ variable_recode$file_type[variable_recode$file_type == "PLACE"] <- "all"
 
 
 value_recode <- recoding_sheet %>% 
-  rename(value = val_recode)
+  rename(value = val_recode) %>% 
+  filter(!is.na(val_raw)) %>% 
+  mutate(value = ifelse())
 
 
 #survey_id <- variable_recode$survey_id
 
-#### Surveys to be recoded
-
-paths <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = paste(survey_id, collapse = "|"), full.names = FALSE, recursive = TRUE)
-
-combined_datasets <- lapply(files, readRDS)
 
 ## Sample survey for trialing functions
 
@@ -99,12 +156,24 @@ path2 <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group
 bendat <- lapply(path2, readRDS)
 ## Trying new_extract_fun
 wow <-  new_extract_fun(bendat[[1]], "BEN2002BBS_FSW", variable_recode)
+
+      ## Trying for PLACE 
+      placepath <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = "AGO2018PLACE_TGW.rds", full.names = TRUE, recursive = TRUE)
+      placedat <- lapply(placepath, readRDS)
+      place_recode <- new_extract_fun(placedat[[1]], "AGO2018PLACE_TGW", variable_recode)
 ## Trying new_val_recode
 wow2 <- wow %>%
   mutate(cdm_last_paid = as.numeric(cdm_last_paid),
          cdm_last_paid = new_val_recode(cdm_last_paid, "cdm_last_paid", "BEN2002BBS_FSW"))
 ## Trying new_recode_survey_variables
-wow3 <- new_recode_survey_variables(wow2, "BEN2002BBS_FSW", value_recode)
+wow3 <- new_recode_survey_variables(wow, "BEN2002BBS_FSW", value_recode)
+placevals <- new_recode_survey_variables(place_recode, "AGO2018PLACE_TGW", value_recode)
+
+#### Surveys to be recoded
+
+paths <- intersect(list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = paste(survey_id, collapse = "|")  , full.names = TRUE, recursive = TRUE), list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = ".rds"  , full.names = TRUE, recursive = TRUE))
+
+combined_datasets <- lapply(paths, readRDS)
 
 #### This is doing weird things.... the recoded datasets are in there amongst the chaos, I think. But the warning is an issue. 
 all_extracted <- combined_datasets %>%
@@ -114,7 +183,7 @@ all_extracted <- combined_datasets %>%
       list(variable_recode)
       )
 
-
+all_extracted <- lapply(combined_datasets, new_extract_fun(df = ., (variable_recode)))
 
 debugonce(new_extract_fun)
 circ_extracted <- combined_datasets %>%
