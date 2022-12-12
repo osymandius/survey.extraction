@@ -2,8 +2,8 @@ new_extract_fun <- function(df, survey_id_c, variable_recode) {
   
   message(survey_id_c)
   
-  if(!survey_id_c %in% variable_recode$survey_id)
-    stop("No survey found in recode sheet")
+  #if(!survey_id_c %in% variable_recode$survey_id)
+   # stop("No survey found in recode sheet")
   
   surv_type <- str_sub(survey_id_c, 8, -5)
   
@@ -135,15 +135,16 @@ rds_adjust <- function(df, survey_id_c) {
     
     nboot <- 30
     
-    vars <- colnames(df)
+    #vars <- colnames(df)
+    vars <- intersect(c("hiv", "age", "age_fs", "hepb", "syphilis", "age_first_paid"), colnames(df))
     #df <- df %>% 
     #filter(!is.na(subject_id))
     
-    df$recruiter.id <- rid.from.coupons(df, subject.id='own_coupon', 
+    df$recruiter.id <- rid.from.coupons(df, subject.id='subject_id', 
                                         subject.coupon='own_coupon', 
                                         coupon.variables=c("coupon1","coupon2","coupon3"))
     
-    df <- as.rds.data.frame(df, id='own_coupon', 
+    df <- as.rds.data.frame(df, id='subject_id', 
                             recruiter.id='recruiter.id',
                             network.size='network_size',
                             population.size=c(NA,NA,NA), 
