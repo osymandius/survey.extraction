@@ -182,3 +182,85 @@ rds_adjust <- function(df, survey_id_c) {
   }
 
 }
+
+rds_adjust2 <- function(df, survey_id_c) {
+  
+  message(survey_id_c)
+  
+  surv_type <- str_sub(survey_id_c, 8, -5)
+  
+  if (surv_type=="BBS") {
+    
+    subject.id = "subject_id" 
+    subject.coupon = "own_coupon" 
+    coupon.variables=c("coupon1", "coupon2", "coupon3")
+    
+    df <- df %>% 
+      mutate(age1 = factor(age)) %>% 
+      mutate(age_name = as.character(age)) %>% 
+      mutate(recruitor.id = rid.from.coupons(df, subject.id="subject_id", 
+                                             subject.coupon="own_coupon", 
+                                             coupon.variables=c("coupon1", "coupon2", "coupon3")))
+    recruitor.id = "recruitor.id"
+    #network_size = "network_size"
+    
+    #df <- as.rds.data.frame(df, id = subject.id, 
+     #                 recruiter.id=recruitor.id,
+      #                network.size = network_size,
+       #               population.size=c(NA,NA,NA), 
+        #              max.coupons=3, notes=NULL) 
+    
+  #    df$seed = get.seed.id(df)
+   #          df$wave = get.wave(df)
+    
+    vars <- intersect(c("hiv", "age_fs","hepb", "syphilis", "age_first_paid"), colnames(df))
+    
+    df2 <- df %>% 
+      group_by(age1) %>% 
+      group_split()
+    
+    names(df2) <- sort(unique(df$age_name))
+    
+    vars_by_age <- Map(function(x,y) {
+    
+    nboot <- 30
+    
+    #vars <- colnames(df)
+        #df <- df %>% 
+    #filter(!is.na(subject_id))
+    
+    #x$recruiter.id <- rid.from.coupons(x, subject.id=subject.id, 
+     #                                                      subject.coupon=subject.coupon, 
+      #                                                     coupon.variables=coupon.variables)
+    x <- as.rds.data.frame(x, id = subject.id, 
+                           recruiter.id=recruitor.id,
+                          network.size = network_size,
+                         population.size=c(NA,NA,NA), 
+                           max.coupons=3, notes=NULL)
+    
+    x$seed <- get.seed.id(x)
+    x$wave <- get.wave(x)
+    
+    freq <- RDS.bootstrap.intervals(x, outcome.variable=vars,
+                                    weight.type="RDS-II", uncertainty="Salganik", 
+                                    confidence.level=0.95, 
+                                    number.of.bootstrap.samples=nboot)
+    
+    cat <- length(freq$estimate)
+    
+    df <- data.frame(matrix(freq$interval, nrow = cat))
+    colnames(df) <- c("estimate", "lower", "upper", "des_effect", "se", "n")
+    
+    df$category <- attr(freq$estimate, "names")
+    
+    df$var <- vars
+    
+    df$age_group <- y
+    
+    df
+    
+    }, x = as.rds.data.frame(df2), y = names(df2)) %>%
+      bind_rows()
+  }
+}
+    
