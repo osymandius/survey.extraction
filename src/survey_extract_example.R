@@ -62,6 +62,7 @@ swzdat <- lapply(swzpath, readRDS)
 swzwow <- new_extract_fun(swzdat[[1]], "SWZ2020BBS_FSW", variable_recode)
 # debugonce(new_recode_survey_variables)
 swzwow2 <- new_recode_survey_variables(swzwow, "SWZ2020BBS_FSW", value_recode)
+debugonce(rds_adjust)
 rds_trial <- rds_adjust(swzwow2, "SWZ2020BBS_FSW")
 
 #### Surveys to be recoded

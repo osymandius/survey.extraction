@@ -132,13 +132,18 @@ rds_adjust <- function(df, survey_id_c) {
   surv_type <- str_sub(survey_id_c, 8, -5)
   
   if (surv_type=="BBS") {
+  
+    df <- df %>% 
+      mutate(age1 = factor(age))
     
     nboot <- 30
     
     #vars <- colnames(df)
-    vars <- intersect(c("hiv", "age", "age_fs", "hepb", "syphilis", "age_first_paid"), colnames(df))
+    vars <- intersect(c("hiv", "age_fs", "age1","hepb", "syphilis", "age_first_paid"), colnames(df))
     #df <- df %>% 
     #filter(!is.na(subject_id))
+    
+    
     
     df$recruiter.id <- rid.from.coupons(df, subject.id='subject_id', 
                                         subject.coupon='own_coupon', 
@@ -175,5 +180,5 @@ rds_adjust <- function(df, survey_id_c) {
       bind_rows()
     
   }
-  
+
 }
