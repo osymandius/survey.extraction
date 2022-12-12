@@ -200,7 +200,8 @@ rds_adjust2 <- function(df, survey_id_c) {
    df <- df %>%
         dplyr::mutate(age_group_label = cut(age, c(0, seq(5, 85, 5)-1), c(paste0(seq(0, 79, 5), "-", seq(5, 80, 5)-1), "80+"), include.lowest=TRUE)) %>%
         dplyr::left_join(naomi::get_age_groups() %>% select(age_group, age_group_label)) %>%
-        dplyr::select(-age_group_label) 
+        dplyr::select(-age_group_label) %>% 
+     filter(!(coupon1 == own_coupon))
       
     #df1b <- df %>% 
      # mutate(recruitor.id = rid.from.coupons(df, subject.id=subject.id, 
@@ -267,7 +268,7 @@ rds_adjust2 <- function(df, survey_id_c) {
     
     df
     
-    }, x = df2, y = names(df2)) %>%
+    }, x = df2[1:8], y = names(df2[1:8])) %>%
       bind_rows()
   }
 }
