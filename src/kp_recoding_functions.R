@@ -227,7 +227,13 @@ rds_adjust2 <- function(df, survey_id_c) {
     names(df2) <- sort(unique(df$age_group))
     
     vars_by_age <- Map(function(x,y) {
-    
+      
+      ## Once you've found which group fails, I use this to step through the function manually by specifying x and y
+      # x <- df2[[7]]
+      # y <- names(df2[7])
+      
+      message(y) ## This is useful in a Map loop so you can see where your error occurs
+      
     nboot <- 30
     
     #vars <- colnames(df)
@@ -251,7 +257,8 @@ rds_adjust2 <- function(df, survey_id_c) {
     x$wave <- get.wave(x)
     
     freq <- RDS.bootstrap.intervals(x, outcome.variable="hiv",
-                                    weight.type="RDS-II", uncertainty="Salganik", 
+                                    weight.type="RDS-II",
+                                    uncertainty="Salganik",
                                     confidence.level=0.95, 
                                     number.of.bootstrap.samples=nboot)
     
