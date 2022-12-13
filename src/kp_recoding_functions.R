@@ -197,18 +197,23 @@ rds_adjust2 <- function(df, survey_id_c) {
     coupon.variables=c("coupon1", "coupon2", "coupon3")
     network_size = "network_size"
     
-   df <- df %>%
-        dplyr::mutate(age_group_label = cut(age, c(0, seq(5, 85, 5)-1), c(paste0(seq(0, 79, 5), "-", seq(5, 80, 5)-1), "80+"), include.lowest=TRUE)) %>%
-      dplyr::left_join(naomi::get_age_groups() %>% select(age_group, age_group_label)) %>%
-       dplyr::select(-age_group_label) %>% 
-    filter(!(coupon1 == own_coupon))  
-  
   # df <- df %>%
-   #  dplyr::mutate(age_group_label = cut(age, c(0, seq(2, 81, 2)-1), c(paste0(seq(0, 77, 2), "-", seq(2, 79, 2)-1), "80+"), include.lowest=TRUE)) %>%
-    # dplyr::left_join(naomi::get_age_groups() %>% select(age_group, age_group_label)) %>%
-     #dplyr::select(-age_group_label) %>% 
-     #filter(!(coupon1 == own_coupon)) 
-   
+   #     dplyr::mutate(age_group_label = cut(age, c(0, seq(5, 85, 5)-1), c(paste0(seq(0, 79, 5), "-", seq(5, 80, 5)-1), "80+"), include.lowest=TRUE)) %>%
+    #  dplyr::left_join(naomi::get_age_groups() %>% select(age_group, age_group_label)) %>%
+     #  dplyr::select(-age_group_label) %>% 
+    #filter(!(coupon1 == own_coupon))  
+  
+ # df <- df %>%
+  #  dplyr::mutate(age_group_label = cut(age, c(0, seq(2, 81, 2)-1), c(paste0(seq(0, 77, 2), "-", seq(2, 79, 2)-1), "80+"), include.lowest=TRUE)) %>%
+   #dplyr::left_join(naomi::get_age_groups() %>% select(age_group, age_group_label)) %>%
+  #dplyr::select(-age_group_label) %>% 
+#  filter(!(coupon1 == own_coupon)) 
+    df <- df %>%
+      dplyr::mutate(age_group_label = factor(age)) %>%
+      dplyr::left_join(naomi::get_age_groups() %>% 
+      select(age_group, age_group_label)) %>%
+      #dplyr::select(-age_group_label) %>% 
+      filter(!(coupon1 == own_coupon))  
    
     #df1b <- df %>% 
      # mutate(recruitor.id = rid.from.coupons(df, subject.id=subject.id, 
@@ -228,10 +233,10 @@ rds_adjust2 <- function(df, survey_id_c) {
     vars <- intersect(c("hiv", "age_fs","hepb", "syphilis", "age_first_paid"), colnames(df))
     
     df2 <- df %>% 
-      group_by(age_group) %>% 
+      group_by(age_group_label) %>% 
       group_split()
     
-    names(df2) <- sort(unique(df$age_group))
+    names(df2) <- sort(unique(df$age_group_label))
     
     vars_by_age <- Map(function(x,y) {
       
@@ -292,7 +297,7 @@ rds_adjust2 <- function(df, survey_id_c) {
     
     df
     
-    }, x = df2[1:6], y = names(df2[1:6])) %>%
+    }, x = df2[13:19], y = names(df2[13:19])) %>%
       bind_rows()
   }
 }
