@@ -199,10 +199,17 @@ rds_adjust2 <- function(df, survey_id_c) {
     
    df <- df %>%
         dplyr::mutate(age_group_label = cut(age, c(0, seq(5, 85, 5)-1), c(paste0(seq(0, 79, 5), "-", seq(5, 80, 5)-1), "80+"), include.lowest=TRUE)) %>%
-        dplyr::left_join(naomi::get_age_groups() %>% select(age_group, age_group_label)) %>%
-        dplyr::select(-age_group_label) %>% 
-     filter(!(coupon1 == own_coupon))
-      
+      dplyr::left_join(naomi::get_age_groups() %>% select(age_group, age_group_label)) %>%
+       dplyr::select(-age_group_label) %>% 
+    filter(!(coupon1 == own_coupon))  
+  
+  # df <- df %>%
+   #  dplyr::mutate(age_group_label = cut(age, c(0, seq(2, 81, 2)-1), c(paste0(seq(0, 77, 2), "-", seq(2, 79, 2)-1), "80+"), include.lowest=TRUE)) %>%
+    # dplyr::left_join(naomi::get_age_groups() %>% select(age_group, age_group_label)) %>%
+     #dplyr::select(-age_group_label) %>% 
+     #filter(!(coupon1 == own_coupon)) 
+   
+   
     #df1b <- df %>% 
      # mutate(recruitor.id = rid.from.coupons(df, subject.id=subject.id, 
       #                                       subject.coupon=subject.coupon, 
@@ -229,8 +236,8 @@ rds_adjust2 <- function(df, survey_id_c) {
     vars_by_age <- Map(function(x,y) {
       
       ## Once you've found which group fails, I use this to step through the function manually by specifying x and y
-      x <- df2[[7]]
-      y <- names(df2[7])
+      #x <- df2[[7]]
+      #y <- names(df2[7])
       
       message(y) ## This is useful in a Map loop so you can see where your error occurs
       
@@ -285,7 +292,7 @@ rds_adjust2 <- function(df, survey_id_c) {
     
     df
     
-    }, x = df2[1:8], y = names(df2[1:8])) %>%
+    }, x = df2[1:6], y = names(df2[1:6])) %>%
       bind_rows()
   }
 }
