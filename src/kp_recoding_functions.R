@@ -229,8 +229,8 @@ rds_adjust2 <- function(df, survey_id_c) {
     vars_by_age <- Map(function(x,y) {
       
       ## Once you've found which group fails, I use this to step through the function manually by specifying x and y
-      # x <- df2[[7]]
-      # y <- names(df2[7])
+      x <- df2[[7]]
+      y <- names(df2[7])
       
       message(y) ## This is useful in a Map loop so you can see where your error occurs
       
@@ -256,11 +256,21 @@ rds_adjust2 <- function(df, survey_id_c) {
     x$seed <- get.seed.id(x)
     x$wave <- get.wave(x)
     
-    freq <- RDS.bootstrap.intervals(x, outcome.variable="hiv",
+    possibly_bootstrap <- purrr::possibly(RDS.bootstrap.intervals, otherwise = NULL)
+    
+    freq <- possibly_bootstrap(x, outcome.variable="hiv",
                                     weight.type="RDS-II",
                                     uncertainty="Salganik",
                                     confidence.level=0.95, 
                                     number.of.bootstrap.samples=nboot)
+    
+    ## Then something that does 
+    
+    # if(is.null(freq)) {
+    #   something sensible to return e.g. unweighted estimate? 
+    #   and then some dataframe that labels which estimates are RDS adjusted and which are raw?
+    # }
+
     
     cat <- length(freq$estimate)
     
