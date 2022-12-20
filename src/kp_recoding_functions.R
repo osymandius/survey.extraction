@@ -7,27 +7,28 @@ new_extract_fun <- function(df, survey_id_c, variable_recode) {
   
   surv_type <- str_sub(survey_id_c, 8, -5)
   
-  if(surv_type == "PLACE") {
-    
-    
-    custom_recode <- filter(variable_recode, survey_id == str_sub(survey_id_c, end = -5))
-    
-    variable_df <- variable_recode %>%
-      
-      distinct(variable) %>%
-      left_join(custom_recode, by="variable") %>% 
-      filter(!is.na(var_raw))
-    
-    
-    opt_var <- filter(variable_df)$var_raw %>% setNames(filter(variable_df)$variable)
-    
-    
-    df <- df %>% 
-      select(any_of(opt_var))
-    
-  }
-  else if (surv_type == "BBS" | surv_type == "ACA")
-  {
+  # if(str_detect(survey_id_c, "PLACE")) {
+  #   
+  #   # surv_type <- "PLACE"
+  #   
+  #   custom_recode <- filter(variable_recode, survey_id == str_sub(survey_id_c, end = -5))
+  #   
+  #   variable_df <- variable_recode %>%
+  #     
+  #     distinct(variable) %>%
+  #     left_join(custom_recode, by="variable") %>% 
+  #     filter(!is.na(var_raw))
+  #   
+  #   
+  #   opt_var <- filter(variable_df)$var_raw %>% setNames(filter(variable_df)$variable)
+  #   
+  #   
+  #   df <- df %>% 
+  #     select(any_of(opt_var))
+  #   
+  # }
+  # else if (surv_type == "BBS" | surv_type == "ACA")
+  # {
     custom_recode <- filter(variable_recode, survey_id == survey_id_c)
     
     variable_df <- variable_recode %>%
@@ -42,31 +43,32 @@ new_extract_fun <- function(df, survey_id_c, variable_recode) {
     
     df <- df %>% 
       mutate(survey_id = survey_id_c) %>%
-      select(survey_id, any_of(opt_var))
+      select(survey_id, any_of(opt_var)) %>% 
+      mutate(subject_id = row_number())
     
-  }
+  # }
 }
 
 
 new_val_recode <- function(col, col_name, survey_id_c) {
   
-  surv_type <- str_sub(survey_id_c, 8, -5)
-  if (surv_type == "PLACE") {
-    value_recode <- value_recode %>%
-      filter(variable == col_name,
-             survey_id == str_sub(survey_id_c, end = -5))
-    
-    if(!length(value_recode$value[!value_recode$value %in% c(0:9, NA)]))
-      value_recode$value <- as.numeric(value_recode$value)
-    
-    vec <- value_recode$value
-    names(vec) <- value_recode$val_raw
-    
-    recode(col, !!!vec)
-  }
-  
-  else if (surv_type == "BBS" | surv_type == "ACA") {
-    
+  # surv_type <- str_sub(survey_id_c, 8, -5)
+  # if(str_detect(survey_id_c, "PLACE")) {
+  #   value_recode <- value_recode %>%
+  #     filter(variable == col_name,
+  #            survey_id == str_sub(survey_id_c, end = -5))
+  #   
+  #   if(!length(value_recode$value[!value_recode$value %in% c(0:9, NA)]))
+  #     value_recode$value <- as.numeric(value_recode$value)
+  #   
+  #   vec <- value_recode$value
+  #   names(vec) <- value_recode$val_raw
+  #   
+  #   recode(col, !!!vec)
+  # }
+  # 
+  # else if (surv_type == "BBS" | surv_type == "ACA") {
+  #   
     value_recode <- value_recode %>%
       filter(variable == col_name,
              survey_id == survey_id_c)
@@ -77,10 +79,21 @@ new_val_recode <- function(col, col_name, survey_id_c) {
     vec <- value_recode$value
     names(vec) <- value_recode$val_raw
     
+    unchanged_vec <- unique(col[!col %in% names(vec)])
+    uv_no_na <-unchanged_vec[!is.na(unchanged_vec)]
+    names(uv_no_na) <- uv_no_na
+    
+    
+    # unchanged_vec_names <- unchanged_vec
+    # unchanged_vec_names[is.na(unchanged_vec_names)] <- "none"
+    # names(unchanged_vec) <- unchanged_vec_names
+    
+    vec <- c(vec, uv_no_na)
+    
     recode(col, !!!vec)
     
   }
-}
+
 
 new_recode_survey_variables <- function(df, survey_id_c, value_recode) {
   
@@ -88,24 +101,25 @@ new_recode_survey_variables <- function(df, survey_id_c, value_recode) {
   
   surv_type <- str_sub(survey_id_c, 8, -5)
   
-  if(surv_type == "PLACE") {
-    
-    recode_columns <- unique(filter(value_recode, survey_id == str_sub(survey_id_c, end = -5))$variable 
-    )
-    
-    
-    df <- df %>%
-      mutate(across(everything(), as.numeric),
-             across(any_of(recode_columns), ~new_val_recode(.x, cur_column(), survey_id_c)),
-             survey_id = survey_id_c 
-      ) %>%
-      type.convert() %>%
-      select(survey_id, everything())
-    
-  }
-  
-  else if (surv_type == "BBS" | surv_type == "ACA")
-  {
+  # if(surv_type == "PLACE") {
+  #   
+  #   recode_columns <- unique(filter(value_recode, survey_id == str_sub(survey_id_c, end = -5))$variable 
+  #   )
+  #   
+  #   
+  #   df <- df %>%
+  #     mutate(across(everything(), as.numeric),
+  #            across(any_of(recode_columns), ~new_val_recode(.x, cur_column(), survey_id_c)),
+  #            survey_id = survey_id_c 
+  #     ) %>%
+  #     type.convert() %>%
+  #     select(survey_id, everything())
+  #   
+  #   
+  # }
+  # 
+  # else if (surv_type == "BBS" | surv_type == "ACA")
+  # {
     recode_columns <- unique(filter(value_recode, survey_id == survey_id_c)$variable
                              
     )
@@ -117,10 +131,13 @@ new_recode_survey_variables <- function(df, survey_id_c, value_recode) {
              survey_id = survey_id_c 
       ) %>%
       type.convert(as.is = TRUE) %>%
-      select(survey_id, everything())
+      select(survey_id, everything()) %>% 
+      ungroup() %>% 
+      mutate(subject_id = row_number()) # this is a bodge to deal with NA's in subject_id # deal with that later
+  
     
   }
-}
+
 
 
 ### Slimmed down rds weighting --> will update this to include the code that breaks down things like age to individual levles.
@@ -131,10 +148,12 @@ rds_adjust <- function(df, survey_id_c) {
   
   surv_type <- str_sub(survey_id_c, 8, -5)
   
-  if (surv_type=="BBS") {
+  if (surv_type=="BBS" & "coupon1" %in% colnames(df) & "age" %in% colnames(df) ) {
   
     df <- df %>% 
-      mutate(age1 = factor(age))
+      mutate(age1 = factor(age)) %>% 
+      filter(!is.na(coupon1),
+             coupon1 != "")
     
     
     nboot <- 30
