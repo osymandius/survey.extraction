@@ -44,6 +44,7 @@ new_extract_fun <- function(df, survey_id_c, variable_recode) {
     df <- df %>% 
       mutate(survey_id = survey_id_c) %>%
       select(survey_id, any_of(opt_var)) %>% 
+      ungroup() %>%
       mutate(subject_id = row_number())
     
   # }
