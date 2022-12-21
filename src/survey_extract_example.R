@@ -9,7 +9,7 @@ ssa_iso3 <- c("BDI", "BEN", "BFA", "CIV", "CMR", "COD", "COG", "GMB", "KEN", "LS
 ### Recoding vars / values
       ## Analysis and file_type redundant for the time being
 # recoding_sheet <-  read_csv("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/00Admin/recoding_sheet.csv")
-recoding_sheet <-  read_csv("~/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/00Admin/recoding_sheet.csv")
+recoding_sheet <-  read_csv("data/recoding_sheet.csv")
 
 variable_recode <- recoding_sheet %>% 
   select(survey_id, variable, var_raw, study_type) %>% 
@@ -110,7 +110,7 @@ all_rds <- all_recoded %>%
       survey_id = names(.))
 
 debugonce(rds_adjust)
-rds_adjust(all_recoded$NAM2019BBS_FSW, "NAM2019BBS_FSW")
+rds_adjust(all_recoded$MOZ2021BBS_FSW, "MOZ2021BBS_FSW")
 
 #
 ## Testing for one survey
