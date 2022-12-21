@@ -186,6 +186,8 @@ rds_adjust <- function(df, survey_id_c) {
 
 rds_adjust2 <- function(df, survey_id_c) {
   
+  df <- swzwow2
+  survey_id_c <- "SWZ2020BBS_FSW"
   message(survey_id_c)
   
   surv_type <- str_sub(survey_id_c, 8, -5)
@@ -221,48 +223,50 @@ rds_adjust2 <- function(df, survey_id_c) {
     vars <- intersect(c("hiv", "age_fs","hepb", "syphilis", "age_first_paid"), colnames(df))
     
     df2 <- df %>% 
-      group_by(age_group) %>% 
+      mutate(age_group = age) %>%
+      group_by(age_group) %>%
+      # group_by(age) %>% 
+      group_split()
+  
+    # names(df2) <- sort(unique(df$age_group))
+    names(df2) <- df2 %>% bind_rows() %>% pull(age_group) %>% unique
+    
+    age_strat <- Map(vars_by_age, df2, names(df2))
+    
+    age_df <- data.frame(
+      age_group_start = str_sub(names(age_strat %>% keep(~is.null(.x))), end = 2)
+    ) %>%
+      type.convert(as.is = TRUE) %>%
+      mutate(
+        age_group_end = age_group_start + 1,
+        age_group = paste0(age_group_start, "-", age_group_end))
+    
+    df <- df %>%
+      select(-age_group) %>%
+      fuzzyjoin::fuzzy_left_join(age_df,
+                                 by = c("age" = "age_group_start",
+                                        "age" = "age_group_end"),
+                                 match_fun = list(`>=`, `<=`)) %>%
+      mutate(age_group = ifelse(is.na(age_group), age, age_group))
+    
+    df2 <- df %>% 
+      group_by(age_group) %>%
+      # group_by(age) %>% 
       group_split()
     
-    names(df2) <- sort(unique(df$age_group))
+    names(df2) <- df2 %>% bind_rows() %>% pull(age_group) %>% unique
     
-    vars_by_age <- Map(function(x,y) {
-      
-      ## Once you've found which group fails, I use this to step through the function manually by specifying x and y
-      x <- df2[[7]]
-      y <- names(df2[7])
-      
-      message(y) ## This is useful in a Map loop so you can see where your error occurs
-      
-    nboot <- 30
+    age_strat <- Map(vars_by_age, df2, names(df2))
     
-    #vars <- colnames(df)
-        #df <- df %>% 
-    #filter(!is.na(subject_id))
+    age_df <- data.frame(
+      age_group_start = str_sub(names(age_strat %>% keep(~is.null(.x))), end = 2)
+    ) %>%
+      type.convert(as.is = TRUE) %>%
+      mutate(
+        age_group_end = age_group_start + 1,
+        age_group = paste0(age_group_start, "-", age_group_end))
     
-    #x$recruiter.id <- rid.from.coupons(x, subject.id=subject.id, 
-     #                                                      subject.coupon=subject.coupon, 
-      #                                                     coupon.variables=coupon.variables)
-    x$recruitor.id <- rid.from.coupons(x, subject.id=subject.id, 
-                                                      subject.coupon=subject.coupon, 
-                                                      coupon.variables=coupon.variables)
-    
-    x <- as.rds.data.frame(x, id = subject.id, 
-                           recruiter.id=recruitor.id,
-                          network.size = network_size,
-                         population.size=c(NA,NA,NA), 
-                           max.coupons=3, notes=NULL)
-    
-    x$seed <- get.seed.id(x)
-    x$wave <- get.wave(x)
-    
-    possibly_bootstrap <- purrr::possibly(RDS.bootstrap.intervals, otherwise = NULL)
-    
-    freq <- possibly_bootstrap(x, outcome.variable="hiv",
-                                    weight.type="RDS-II",
-                                    uncertainty="Salganik",
-                                    confidence.level=0.95, 
-                                    number.of.bootstrap.samples=nboot)
+    vars_by_age <- Map(vars_by_age, df2, names(df2))
     
     ## Then something that does 
     
@@ -285,8 +289,48 @@ rds_adjust2 <- function(df, survey_id_c) {
     
     df
     
-    }, x = df2[1:8], y = names(df2[1:8])) %>%
+    }, x = df2, y = names(df2)) %>%
       bind_rows()
   }
+}
+
+vars_by_age <- function(x,y) {
+  
+  ## Once you've found which group fails, I use this to step through the function manually by specifying x and y
+  # x <- df2[[10]]
+  # y <- names(df2[10])
+  
+  message(y) ## This is useful in a Map loop so you can see where your error occurs
+  
+  nboot <- 30
+  
+  #vars <- colnames(df)
+  #df <- df %>% 
+  #filter(!is.na(subject_id))
+  
+  #x$recruiter.id <- rid.from.coupons(x, subject.id=subject.id, 
+  #                                                      subject.coupon=subject.coupon, 
+  #                                                     coupon.variables=coupon.variables)
+  x$recruitor.id <- rid.from.coupons(x, subject.id=subject.id, 
+                                     subject.coupon=subject.coupon, 
+                                     coupon.variables=coupon.variables)
+  
+  x <- as.rds.data.frame(x, id = subject.id, 
+                         recruiter.id=recruitor.id,
+                         network.size = network_size,
+                         population.size=c(NA,NA,NA), 
+                         max.coupons=3, notes=NULL)
+  
+  x$seed <- get.seed.id(x)
+  x$wave <- get.wave(x)
+  
+  possibly_bootstrap <- purrr::possibly(RDS.bootstrap.intervals, otherwise = NULL)
+  
+  freq <- possibly_bootstrap(x, outcome.variable="hiv",
+                             weight.type="RDS-II",
+                             uncertainty="Salganik",
+                             confidence.level=0.95, 
+                             number.of.bootstrap.samples=nboot)
+  
 }
     

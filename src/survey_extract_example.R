@@ -3,13 +3,13 @@ library(tidyverse)
 library(rdhs)
 
 #source("~/Documents/GitHub/survey-extraction/src/kp_recoding_functions.R")
-source("C:/Users/rla121/OneDrive - Imperial College London/Documents/GitHub/survey-extraction/src/kp_recoding_functions.R")
+source("~/Documents/GitHub/survey-extraction/src/kp_recoding_functions.R")
 ssa_iso3 <- c("BDI", "BEN", "BFA", "CIV", "CMR", "COD", "COG", "GMB", "KEN", "LSO", "MLI", "MOZ", "MWI", "NGA", "SLE", "SWZ", "TCD", "TGO", "ZWE", "AGO", "ETH", "GAB", "GHA", "GIN", "LBR", "NAM", "NER", "RWA", "SEN", "TZA", "UGA", "ZMB")
 
 ### Recoding vars / values
       ## Analysis and file_type redundant for the time being
-recoding_sheet <-  read_csv("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/00Admin/recoding_sheet.csv")
-#recoding_sheet <-  read_csv("~/Downloads/recoding_sheet.csv")
+# recoding_sheet <-  read_csv("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/00Admin/recoding_sheet.csv")
+recoding_sheet <-  read_csv("~/Downloads/recoding_sheet.csv")
 
 variable_recode <- recoding_sheet %>% 
   select(survey_id, variable, var_raw, study_type) %>% 
@@ -55,7 +55,7 @@ wow3 <- new_recode_survey_variables(wow, "BEN2002BBS_FSW", value_recode)
 placevals <- new_recode_survey_variables(place_recode, "AGO2018PLACE_TGW", value_recode)
 
 ### Trying RDS -> this is not working --> going wrong with new_recode_survey_variables - it's not dealing with strings very well. 
-swzpath <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = "SWZ2020BBS_FSW.rds", full.names = TRUE, recursive = TRUE)
+swzpath <- list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = "SWZ2020BBS_FSW.rds", full.names = TRUE, recursive = TRUE)
 #swzpath <- list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = "SWZ2020BBS_FSW.rds", full.names = TRUE, recursive = TRUE)
 
 swzdat <- lapply(swzpath, readRDS)
@@ -64,6 +64,8 @@ swzwow <- new_extract_fun(swzdat[[1]], "SWZ2020BBS_FSW", variable_recode)
 swzwow2 <- new_recode_survey_variables(swzwow, "SWZ2020BBS_FSW", value_recode)
 debugonce(rds_adjust2)
 rds_trial <- rds_adjust2(swzwow2, "SWZ2020BBS_FSW")
+
+foo <- rds_adjust(swzwow2, "SWZ2020BBS_FSW")
 
 #### Surveys to be recoded
 
