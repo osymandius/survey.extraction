@@ -2,8 +2,11 @@ new_extract_fun <- function(df, survey_id_c, variable_recode) {
   
   message(survey_id_c)
   
-  #if(!survey_id_c %in% variable_recode$survey_id)
-   # stop("No survey found in recode sheet")
+  if(!survey_id_c %in% variable_recode$survey_id) {
+    warning("No survey found in recode sheet")
+    return(NULL)
+  }
+  
   
   surv_type <- str_sub(survey_id_c, 8, -5)
   
@@ -45,7 +48,7 @@ new_extract_fun <- function(df, survey_id_c, variable_recode) {
       mutate(survey_id = survey_id_c) %>%
       select(survey_id, any_of(opt_var)) %>% 
       ungroup() %>%
-      mutate(subject_id = row_number())
+      mutate(subject_id = row_number()) # this is a bodge to deal with NA's in subject_id # deal with that later
     
   # }
 }
@@ -102,39 +105,16 @@ new_recode_survey_variables <- function(df, survey_id_c, value_recode) {
   
   surv_type <- str_sub(survey_id_c, 8, -5)
   
-  # if(surv_type == "PLACE") {
-  #   
-  #   recode_columns <- unique(filter(value_recode, survey_id == str_sub(survey_id_c, end = -5))$variable 
-  #   )
-  #   
-  #   
-  #   df <- df %>%
-  #     mutate(across(everything(), as.numeric),
-  #            across(any_of(recode_columns), ~new_val_recode(.x, cur_column(), survey_id_c)),
-  #            survey_id = survey_id_c 
-  #     ) %>%
-  #     type.convert() %>%
-  #     select(survey_id, everything())
-  #   
-  #   
-  # }
-  # 
-  # else if (surv_type == "BBS" | surv_type == "ACA")
-  # {
-    recode_columns <- unique(filter(value_recode, survey_id == survey_id_c)$variable
-                             
-    )
+  recode_columns <- unique(filter(value_recode, survey_id == survey_id_c)$variable)
     
-    df <- df %>%
-      mutate(
-        # across(everything(), as.numeric),
-             across(any_of(recode_columns), ~new_val_recode(.x, cur_column(), survey_id_c)),
-             survey_id = survey_id_c 
-      ) %>%
-      type.convert(as.is = TRUE) %>%
-      select(survey_id, everything()) %>% 
-      ungroup() %>% 
-      mutate(subject_id = row_number()) # this is a bodge to deal with NA's in subject_id # deal with that later
+  df <- df %>%
+    mutate(
+      # across(everything(), as.numeric),
+      across(any_of(recode_columns), ~new_val_recode(.x, cur_column(), survey_id_c)),
+      survey_id = survey_id_c 
+    ) %>%
+    type.convert(as.is = TRUE) %>%
+    select(survey_id, everything())
   
     
   }
@@ -156,15 +136,14 @@ rds_adjust <- function(df, survey_id_c) {
       filter(!is.na(coupon1),
              coupon1 != "")
     
+    median_network_size <- median(df$network_size[!is.na(df$network_size) & df$network_size != 0])
+    
+    df$network_size[is.na(df$network_size) | df$network_size == 0] <- median_network_size
     
     nboot <- 30
     
-    #vars <- colnames(df)
-    vars <- intersect(c("hiv", "age_fs", "age1","hepb", "syphilis", "age_first_paid"), colnames(df))
-    #df <- df %>% 
-    #filter(!is.na(subject_id))
-    
-    
+    # vars <- intersect(c("hiv", "age_fs", "age1","hepb", "syphilis", "age_first_paid"), colnames(df))
+    vars <- "age1"
     
     df$recruiter.id <- rid.from.coupons(df, subject.id='subject_id', 
                                         subject.coupon='own_coupon', 
@@ -200,6 +179,8 @@ rds_adjust <- function(df, survey_id_c) {
     }) %>%
       bind_rows()
     
+  } else {
+    NULL
   }
 
 }

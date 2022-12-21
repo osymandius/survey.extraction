@@ -84,6 +84,8 @@ surv_ids <- str_remove(surv_ids, ".rds")
 
 names(combined_datasets) <- surv_ids
 
+combined_datasets <- combined_datasets[!names(combined_datasets) %in% c("NAM2019BBS_FSW", "NAM2019BBS_MSM", "SWZ2020BBS_FSW")]
+
 #### This is doing weird things.... the recoded datasets are in there amongst the chaos, I think. 
 all_extracted <- combined_datasets %>%
   Map(new_extract_fun,
@@ -91,6 +93,8 @@ all_extracted <- combined_datasets %>%
       survey_id = names(.),
       list(variable_recode)
       )
+
+all_extracted <- compact(all_extracted)
 
 #all_extracted[["BEN2005BBS_FSW"]]
 
