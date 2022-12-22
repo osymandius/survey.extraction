@@ -19,7 +19,8 @@ variable_recode <- recoding_sheet %>%
   distinct() %>%
   mutate(analysis = "kp") %>% 
   filter(!variable == "cdm_location",
-         !variable == "subject_id") %>% 
+         !variable == "subject_id",
+         !variable == c("residence", "hivtest_whenlast", "when_positive")) %>% ### removing residence is to get round the character/integer binding row problem later. A bridge to cross when we start looking at spatial issues
   rename(var_raw = var_label_raw) 
 
 value_recode <- recoding_sheet %>% 
@@ -120,3 +121,54 @@ debugonce(new_val_recode)
 df %>%
   mutate(onart = new_val_recode(onart, "onart", survey_id_c))
 
+
+
+
+##############################
+#### Making lists data frames 
+
+rds_df <- bind_rows(all_rds)
+  
+  
+(age_plot <- rds_df %>% 
+  group_by(survey_id) %>% 
+  ggplot() +
+  geom_pointrange(aes(x = category, y = estimate, ymin = lower, ymax = upper, color = survey_id)) +
+    moz.utils::standard_theme() +
+  xlab("age") +
+  ylab("proportion of FSW") )
+
+
+
+non_rds_df <- bind_rows(all_recoded) %>% 
+    mutate(survey_id2 = survey_id) %>% 
+    separate(
+      col = survey_id2,
+      into = c("survey", "kp"),
+      sep = "_",
+      convert = TRUE
+    ) %>% 
+  filter(!age > 100) %>% 
+  group_by(survey_id) 
+  #mutate(frequency = count(age))
+
+
+non_rds_frequency <- as.data.frame(count(non_rds_df, age)) %>% 
+  mutate(proportion = n/sum(n)) %>% 
+  mutate(survey_id2 = survey_id) %>% 
+  separate(
+    col = survey_id2,
+    into = c("survey", "kp"),
+    sep = "_",
+    convert = TRUE
+  )
+  
+
+(non_rds_age_plots <- non_rds_frequency %>% 
+  filter(kp == "FSW") %>% 
+  ggplot() +
+  geom_point(aes(x = age, y = proportion, color = survey_id)) +
+  moz.utils::standard_theme())
+  
+  ###facet_wrap(rds_df$survey_id))  ## How come this doesn't work?
+ggpubr::ggarrange(age_plot, non_rds_age_plots, nrow = 2)

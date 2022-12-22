@@ -48,7 +48,9 @@ new_extract_fun <- function(df, survey_id_c, variable_recode) {
       mutate(survey_id = survey_id_c) %>%
       select(survey_id, any_of(opt_var)) %>% 
       ungroup() %>%
-      mutate(subject_id = row_number()) # this is a bodge to deal with NA's in subject_id # deal with that later
+      mutate(subject_id = row_number()) %>% 
+      select(-old_subject_id) # this is a bodge to deal with NA's in subject_id # deal with that later
+    
     
   # }
 }
@@ -177,7 +179,8 @@ rds_adjust <- function(df, survey_id_c) {
       
       df
     }) %>%
-      bind_rows()
+      bind_rows() %>% 
+      mutate(survey_id = survey_id_c)
     
   } else {
     NULL
@@ -299,7 +302,9 @@ rds_adjust2 <- function(df, survey_id_c) {
     df
     
     }, x = df2[13:19], y = names(df2[13:19])) %>%
-      bind_rows()
+      bind_rows() 
   }
 }
+
+
     
