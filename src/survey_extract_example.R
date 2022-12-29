@@ -127,33 +127,39 @@ df %>%
 ##############################
 #### Making lists data frames 
 
-rds_df <- bind_rows(all_rds)
+rds_df <- bind_rows(all_rds) %>% 
+  mutate(survey_id2 = survey_id) %>% 
+  separate(
+    col = survey_id2,
+    into = c("survey", "kp"),
+    sep = "_",
+    convert = TRUE
+  )
   
   
 (age_plot <- rds_df %>% 
+    mutate(age = as.numeric(category)) %>% 
+    filter(!age>49) %>% 
   group_by(survey_id) %>% 
   ggplot() +
-  geom_pointrange(aes(x = category, y = estimate, ymin = lower, ymax = upper, color = survey_id)) +
+  geom_smooth(aes(x = age, y = estimate, color = survey_id), se = FALSE, show.legend = FALSE) +
+   geom_ribbon(aes(x = age, ymin = lower, ymax = upper, fill = survey_id), alpha = 0.4, show.legend = FALSE) +
     moz.utils::standard_theme() +
   xlab("age") +
-  ylab("proportion of FSW") )
+  ylab("proportion") +
+    ggtitle("RDS Studies") + 
+    facet_wrap(~kp, ncol =5))
 
 
 
 non_rds_df <- bind_rows(all_recoded) %>% 
-    mutate(survey_id2 = survey_id) %>% 
-    separate(
-      col = survey_id2,
-      into = c("survey", "kp"),
-      sep = "_",
-      convert = TRUE
-    ) %>% 
   filter(!age > 95) %>% 
   group_by(survey_id) 
   #mutate(frequency = count(age))
 
 
 non_rds_frequency <- as.data.frame(count(non_rds_df, age)) %>% 
+  group_by(survey_id) %>% 
   mutate(proportion = n/sum(n)) %>% 
   mutate(survey_id2 = survey_id) %>% 
   separate(
@@ -164,26 +170,32 @@ non_rds_frequency <- as.data.frame(count(non_rds_df, age)) %>%
   )
   
 
-(non_rds_age_plots <- non_rds_frequency %>% 
-  filter(kp == "FSW") %>% 
-  ggplot() +
-  geom_point(aes(x = age, y = proportion, color = survey_id)) +
-  moz.utils::standard_theme())
-  
-  ###facet_wrap(rds_df$survey_id))  ## How come this doesn't work?
-ggpubr::ggarrange(age_plot, non_rds_age_plots, nrow = 2)
+(non_rds_density<- non_rds_frequency %>% 
+  filter(!kp == "CFSW",
+         !kp == "TGW",
+         !age>49) %>% 
+  ggplot(aes(x = age, y = proportion)) +
+    geom_smooth(aes(color = survey_id), se = FALSE, show.legend = FALSE) +
+    moz.utils::standard_theme() +
+facet_wrap(~kp, ncol = 5) +
+    xlab("age") +
+    ylab("proportion") +
+    ggtitle("PLACE & ACA studies"))
 
 
-(non_rds_age_plots <- non_rds_frequency %>% 
-    filter(kp == "MSM") %>% 
-    ggplot() +
-    geom_point(aes(x = age, y = proportion, color = survey_id)) +
-    moz.utils::standard_theme())
-(non_rds_age_plots <- non_rds_frequency %>% 
-    filter(kp == "PWID") %>% 
-    ggplot() +
-    geom_point(aes(x = age, y = proportion, color = survey_id)) +
-    moz.utils::standard_theme())
+ggpubr::ggarrange(non_rds_density, age_plot, nrow = 2)
+
+# 
+# (non_rds_msm <- non_rds_frequency %>% 
+#     filter(kp == "MSM") %>% 
+#     ggplot() +
+#     geom_density(aes(x = age, y = proportion, color = survey_id)) +
+#     moz.utils::standard_theme())
+# (non_rds_msm <- non_rds_frequency %>% 
+#     filter(kp == "PWID") %>% 
+#     ggplot() +
+#     geom_point(aes(x = age, y = proportion, color = survey_id)) +
+#     moz.utils::standard_theme())
 
 
 
@@ -192,14 +204,14 @@ ggpubr::ggarrange(age_plot, non_rds_age_plots, nrow = 2)
 plyr::mutate(age_group_label = cut(age, c(0, seq(5, 85, 5)-1), c(paste0(seq(0, 79, 5), "-", seq(5, 80, 5)-1), "80+"), include.lowest=TRUE)) %>%
   dplyr::left_join(naomi::get_age_groups() %>% select(age_group, age_group_label)) %>%
   dplyr::select(-age_group_label) %>% 
-  group_by(age_group) %>% 
-  ggplot(aes(x = age_group, y = proportion, color = survey_id)) +
-  geom_point() +
-  # facet_wrap(non_rds_frequency$survey_id) +
+  group_by(kp, survey_id, age_group) %>% 
+  ggplot() +
+  geom_density(aes(x = age_group, y = proportion, color = survey_id), stat = "identity") +
+  facet_wrap(~kp) +
   moz.utils::standard_theme())
 
 
-(rds_df2 <- rds_df %>% 
+ (rds_df2 <- rds_df %>% 
     mutate(age = as.numeric(category)) %>% 
   plyr::mutate(age_group_label = cut(age, c(0, seq(5, 85, 5)-1), c(paste0(seq(0, 79, 5), "-", seq(5, 80, 5)-1), "80+"), include.lowest=TRUE)) %>%
   dplyr::left_join(naomi::get_age_groups() %>% select(age_group, age_group_label)) %>%
@@ -214,10 +226,10 @@ plyr::mutate(age_group_label = cut(age, c(0, seq(5, 85, 5)-1), c(paste0(seq(0, 7
 ### non-rds HIV pos
 
 hiv_non_rds <- non_rds_df %>% 
-  filter(hiv == 1) %>% 
-  group_by(survey_id)
+  filter(hiv == 1) 
   
 hiv_non_rds <-  as.data.frame(count(hiv_non_rds, age)) %>% 
+  group_by(survey_id) %>% 
   mutate(proportion = n/sum(n)) %>% 
   mutate(survey_id2 = survey_id) %>% 
   separate(
@@ -228,9 +240,9 @@ hiv_non_rds <-  as.data.frame(count(hiv_non_rds, age)) %>%
 
 
 (hiv_non_rds_age_plots <- hiv_non_rds %>% 
-    filter(kp == "FSW") %>% 
+   # filter(kp == "FSW") %>% 
     ggplot() +
-    geom_point(aes(x = age, y = proportion, color = survey_id)) +
+    geom_density(aes(x = age, y = proportion, color = survey_id), stat = "identity") +
     moz.utils::standard_theme())
 
 (hiv_non_rds_frequency2 <- hiv_non_rds %>% 
@@ -239,8 +251,8 @@ hiv_non_rds <-  as.data.frame(count(hiv_non_rds, age)) %>%
     dplyr::select(-age_group_label) %>% 
     group_by(age_group) %>% 
     ggplot(aes(x = age_group, y = proportion, color = survey_id)) +
-    geom_point() +
-    # facet_wrap(non_rds_frequency$survey_id) +
+    geom_density( stat = "identity") +
+    facet_wrap(~kp) +
     moz.utils::standard_theme())
 
 ggpubr::ggarrange(non_rds_frequency2, hiv_non_rds_frequency2, nrow = 2)
