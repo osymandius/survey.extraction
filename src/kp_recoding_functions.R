@@ -125,7 +125,12 @@ new_recode_survey_variables <- function(df, survey_id_c, value_recode) {
 
 ### Slimmed down rds weighting --> will update this to include the code that breaks down things like age to individual levles.
 ## will also roll into new_recode_survey_variables I think
-rds_adjust <- function(df, survey_id_c) {
+rds_adjust <- function(df, survey_id_c, variable_recode) {
+  
+  rds_survs <- variable_recode %>% 
+    filter(study_type == "rds")
+  
+  if(survey_id_c %in% rds_survs$survey_id) {
   
   message(survey_id_c)
   
@@ -186,7 +191,7 @@ rds_adjust <- function(df, survey_id_c) {
     NULL
   }
 
-}
+}}
 
 rds_adjust2 <- function(df, survey_id_c) {
   

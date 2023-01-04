@@ -108,7 +108,8 @@ all_recoded <- all_extracted %>%
 all_rds <- all_recoded %>% 
   Map(rds_adjust,
       df = .,
-      survey_id = names(.))
+      survey_id = names(.),
+      list(variable_recode))
 
 debugonce(rds_adjust)
 rds_adjust(all_recoded$MOZ2021BBS_FSW, "MOZ2021BBS_FSW")
