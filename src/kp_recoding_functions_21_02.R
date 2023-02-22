@@ -152,11 +152,11 @@ rds_adjust <- function(df, survey_id_c, variable_recode) {
     # vars <- intersect(c("hiv", "age_fs", "age1","hepb", "syphilis", "age_first_paid"), colnames(df))
     vars <- "age1"
     
-    df$recruiter.id <- rid.from.coupons(df, subject.id='idx', 
+    df$recruiter.id <- rid.from.coupons(df, subject.id='subject_id', 
                                         subject.coupon='own_coupon', 
                                         coupon.variables=c("coupon1","coupon2","coupon3"))
     
-    df <- as.rds.data.frame(df, id='idx', 
+    df <- as.rds.data.frame(df, id='subject_id', 
                             recruiter.id='recruiter.id',
                             network.size='network_size',
                             population.size=c(NA,NA,NA), 

@@ -2,7 +2,7 @@ library(RDS)
 library(tidyverse)
 library(rdhs)
 
-#source("~/Documents/GitHub/survey-extraction/src/kp_recoding_functions.R")
+source("~/Documents/GitHub/survey-extraction/src/kp_recoding_functions.R")
 source("src/kp_recoding_functions.R")
 ssa_iso3 <- c("BDI", "BEN", "BFA", "CIV", "CMR", "COD", "COG", "GMB", "KEN", "LSO", "MLI", "MOZ", "MWI", "NGA", "SLE", "SWZ", "TCD", "TGO", "ZWE", "AGO", "ETH", "GAB", "GHA", "GIN", "LBR", "NAM", "NER", "RWA", "SEN", "TZA", "UGA", "ZMB")
 
@@ -69,8 +69,8 @@ rds_trial <- rds_adjust2(wow3, "MWI2019BBS_FSW")
 #paths <- intersect(list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = paste(unique(variable_recode$survey_id), collapse = "|")  , full.names = TRUE, recursive = TRUE), list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = ".rds"  , full.names = TRUE, recursive = TRUE))
 
 # paths <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", recursive = TRUE, pattern = ".rds", full.names = TRUE) %>%
-paths <- list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", recursive = TRUE, pattern = ".rds", full.names = TRUE) %>%
-  lapply(., grep, pattern= "code", value = TRUE, invert = TRUE) %>%
+paths <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/KP/Individual level data/", recursive = TRUE, pattern = ".rds", full.names = TRUE) %>%
+  lapply(., grep, pattern= "PWID|PLACE|CFSW|TG|NPP|TGW|TGM|MSW|code|Anne|v1", value = TRUE, invert = TRUE) %>%
   unlist()
   
 
@@ -85,7 +85,9 @@ surv_ids <- str_remove(surv_ids, ".rds")
 
 names(combined_datasets) <- surv_ids
 
-combined_datasets <- combined_datasets[!names(combined_datasets) %in% c("NAM2019BBS_FSW", "NAM2019BBS_MSM", "SWZ2020BBS_FSW")]
+combined_datasets <- combined_datasets[!names(combined_datasets) %in% c("NAM2019BBS_FSW", "NAM2019BBS_MSM", "SWZ2020BBS_FSW", 
+                                                                        "CIV2020BBS_FSW", "MOZ2012BBS_FSW", "ZAF2013BBS_MSM", #This line is extract error
+                                                                        )]
 
 #### This is doing weird things.... the recoded datasets are in there amongst the chaos, I think. 
 all_extracted <- combined_datasets %>%
@@ -99,17 +101,25 @@ all_extracted <- compact(all_extracted)
 
 #all_extracted[["BEN2005BBS_FSW"]]
 
+all_extracted <- all_extracted[!names(all_extracted) %in% c("BEN2012ACA_FSW", "CIV2020BBS_MSM", "GHA2011BBS_FSW", "GHA2015BBS_FSW", "GHA2019BBS_FSW", "UGA2021BBS_MSM", "ZAF2014BBS_FSW" , "ZAF2017BBS_MSM")]
+#Two copies of UGA 2021 BBS FSW??
+
 all_recoded <- all_extracted %>%
   Map(new_recode_survey_variables,
       df = .,
       survey_id = names(.),
       list(value_recode))
 
+# all_extracted <- all_extracted[!names(all_extracted) %in% c("BEN2012ACA_FSW", "CIV2020BBS_MSM", "GHA2011BBS_FSW", "GHA2015BBS_FSW", "GHA2019BBS_FSW", "UGA2021BBS_MSM", "ZAF2014BBS_FSW" , "ZAF2017BBS_MSM")]
+library(RDS)
+
 all_rds <- all_recoded %>% 
   Map(rds_adjust,
       df = .,
       survey_id = names(.),
       list(variable_recode))
+
+all_rds %>%
 
 debugonce(rds_adjust)
 rds_adjust(all_recoded$MOZ2021BBS_FSW, "MOZ2021BBS_FSW")
@@ -129,22 +139,41 @@ df %>%
 #### Making lists data frames 
 
 rds_df <- bind_rows(all_rds) %>% 
-  mutate(survey_id2 = survey_id) %>% 
+  mutate(survey_id2 = survey_id)
+
+all_recoded <- all_recoded[names(all_recoded) != "UGA2021BBS_FSW"]
+nonrds_list <- all_recoded[!names(all_recoded) %in% rds_df$survey_id2]
+  
+non_rdsdat <- nonrds_list %>% lapply(function(x) {
+  if(is.null(unique(x$age)))
+    x
+  else
+     x %>% mutate(age = as.numeric(age))
+  }) %>% lapply(select, any_of(c("age", "subject_id"))) %>% bind_rows(.id = "survey_id")
+
+non_rdsdat <- non_rdsdat %>%
+  filter(!is.na(age)) %>%
+  group_by(survey_id) %>%
+  count(age) %>%
+  mutate(estimate = n/sum(n))
+  
+age_dat <- rds_df %>%
+  rename(age = category) %>%
+  type.convert(as.is = TRUE) %>%
+  bind_rows(non_rdsdat) %>%
   separate(
-    col = survey_id2,
-    into = c("survey", "kp"),
+    col = survey_id,
+    into = c("survey_id", "kp"),
     sep = "_",
     convert = TRUE
   )
-  
-  
-(age_plot <- rds_df %>% 
-    mutate(age = as.numeric(category)) %>% 
+
+(age_plot <- age_dat %>% 
     filter(!age>49) %>% 
   group_by(survey_id) %>% 
   ggplot() +
   geom_smooth(aes(x = age, y = estimate, color = survey_id), se = FALSE, show.legend = FALSE) +
-   geom_ribbon(aes(x = age, ymin = lower, ymax = upper, fill = survey_id), alpha = 0.4, show.legend = FALSE) +
+   # geom_ribbon(aes(x = age, ymin = lower, ymax = upper, fill = survey_id), alpha = 0.4, show.legend = FALSE) +
     moz.utils::standard_theme() +
   xlab("age") +
   ylab("proportion") +
