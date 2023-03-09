@@ -16,7 +16,7 @@ ssa_iso3 <- c("BDI", "BEN", "BFA", "CIV", "CMR", "COD", "COG", "GMB", "KEN", "LS
 
 
 ### READ IN THE age_dat.csv (in survey-extraction/data) here and feel free to then hop on down to line 527 #### 
-
+age_dat2 <- read_csv("data/age_dat.csv")
 
 
 
