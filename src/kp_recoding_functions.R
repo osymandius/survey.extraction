@@ -110,6 +110,7 @@ new_recode_survey_variables <- function(df, survey_id_c, value_recode) {
   recode_columns <- unique(filter(value_recode, survey_id == survey_id_c)$variable)
     
   df <- df %>%
+    haven::zap_labels()
     mutate(
       # across(everything(), as.numeric),
       across(any_of(recode_columns), ~new_val_recode(.x, cur_column(), survey_id_c)),

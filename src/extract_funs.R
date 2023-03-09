@@ -23,7 +23,7 @@ dhscc_to_iso3 <- function(dhscc) {
 #'
 #' @export
 
-recode_mics_id_vars <- function(variable_recode, survey_id_c, dataset_type) {
+recode_mics_id_vars <- function(variable_recode, survey_id_c, dataset_type) { 
   
   # Finds if there are custom variable names associated with this survey ID and dataset type
   custom_recode <- filter(variable_recode, survey_id == survey_id_c, dataset == dataset_type)
