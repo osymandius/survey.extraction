@@ -17,6 +17,7 @@ ssa_iso3 <- c("BDI", "BEN", "BFA", "CIV", "CMR", "COD", "COG", "GMB", "KEN", "LS
 
 ### READ IN THE age_dat.csv (in survey-extraction/data) here and feel free to then hop on down to line 527 #### 
 age_dat2 <- read_csv("data/age_dat.csv")
+age_dat2 <- read_csv("~/Downloads/age_dat.csv")
 
 
 
@@ -530,14 +531,14 @@ write_csv(age_dat2, "C:/Users/rla121/Dropbox/KP/Individual KP/age_dat.csv")
 ssa_names <- c("Angola", "Botswana", "Eswatini", "Ethiopia", "Kenya", "Lesotho",  "Malawi", "Mozambique", "Namibia", "Rwanda", "South Africa", "South Sudan", "Uganda", "United Republic of Tanzania", "Zambia", "Zimbabwe", "Benin", "Burkina Faso", "Burundi", "Cameroon", "Central African Republic", "Chad", "Congo", "Côte d'Ivoire", "Democratic Republic of the Congo", "Equatorial Guinea", "Gabon", "Gambia", "Ghana", "Guinea", "Guinea-Bissau", "Liberia", "Mali", "Niger", "Nigeria", "Senegal", "Sierra Leone", "Togo")
 ssa_iso3 <- countrycode::countrycode(ssa_names, "country.name", "iso3c")
 
-# grey <- read_sf("C:/Users/rla121/Dropbox/KP/Useful/Geographies/Longitude_Graticules_and_World_Countries_Boundaries-shp/99bfd9e7-bb42-4728-87b5-07f8c8ac631c2020328-1-1vef4ev.lu5nk.shp") %>%
+# grey <- read_sf("~/Downloads/Longitude_Graticules_and_World_Countries_Boundaries-shp/99bfd9e7-bb42-4728-87b5-07f8c8ac631c2020328-1-1vef4ev.lu5nk.shp") %>%
 #   filter(CNTRY_NAME %in% c("Western Sahara", "Mauritania", "Morocco", "Algeria", "Libya", "Tunisia", "Egypt", "Somalia", "Djibouti", "Eritrea")) %>%
-#   bind_rows(read_sf("C:/Users/rla121/Dropbox/KP/Useful/Geographies/ssd_adm_imwg_nbs_20220121/ssd_admbnda_adm0_imwg_nbs_20210924.shp"))
+#   bind_rows(read_sf("~/Downloads/ssd_adm_imwg_nbs_20220121/ssd_admbnda_adm0_imwg_nbs_20210924.shp"))
 
-ssd_boundary <- read_sf("C:/Users/rla121/Dropbox/KP/Useful/Geographies/ssd_adm_imwg_nbs_20220121/ssd_admbnda_adm0_imwg_nbs_20210924.shp")
+ssd_boundary <- read_sf("~/Downloads/ssd_adm_imwg_nbs_20220121/ssd_admbnda_adm0_imwg_nbs_20210924.shp")
 ssd_boundary_simple <- rmapshaper::ms_simplify(ssd_boundary, 0.05)
 
-geographies <- read_sf("C:/Users/rla121/Dropbox/KP/Useful/Geographies/Longitude_Graticules_and_World_Countries_Boundaries-shp/99bfd9e7-bb42-4728-87b5-07f8c8ac631c2020328-1-1vef4ev.lu5nk.shp") %>%
+geographies <- read_sf("~/Downloads/Longitude_Graticules_and_World_Countries_Boundaries-shp/99bfd9e7-bb42-4728-87b5-07f8c8ac631c2020328-1-1vef4ev.lu5nk.shp") %>%
   bind_rows(
     ssd_boundary_simple %>%
       transmute(CNTRY_NAME = "South Sudan")
@@ -561,13 +562,13 @@ bbox <- c(xmin = -17.5327797,
 
 geographies <- st_crop(geographies, bbox)
 
-temp_geog2 <- poly2nb(geographies)
-
-nb2INLA("geog.adj", temp_geog2)
-geog.adj <- paste(getwd(), "/geog.graph2", sep="")
-
-GG <- inla.read.graph(filename = "geog.graph2")
-image(inla.graph2matrix(GG), xlab = "", ylab="")
+# temp_geog2 <- poly2nb(geographies)
+# 
+# nb2INLA("geog.adj", temp_geog2)
+# geog.adj <- paste(getwd(), "/geog.graph2", sep="")
+# 
+# GG <- inla.read.graph(filename = "geog.graph2")
+# image(inla.graph2matrix(GG), xlab = "", ylab="")
 
 
 
@@ -620,20 +621,69 @@ ar1_group_prior <- list(
 )
 
 formula <- x_eff ~ -1 + f(id.ref, model = "iid" , hyper = multi.utils::tau_fixed(1E-6)) +
-  bs(id.age, df = 5) + 
-  f(id.iso3, model="besag", graph="geog.adj", scale.model = TRUE, group = id.age, control.group = list(model = "iid"), constr = TRUE, hyper = multi.utils::tau_pc(x = 0.001, u = 2.5, alpha = 0.01)) +
- f(id.ref2, model="iid", group = id.age, control.group = list(model = "iid"),
-    constr = TRUE, hyper = multi.utils::tau_pc(x = 0.001, u = 2.5, alpha = 0.01))
+  bs(id.age, df = 5)  +
+  # f(id.age, model = "ar1") +
+  f(id.iso3, model="besag", graph="geog.adj", scale.model = TRUE, group = id.age, control.group = list(model = "rw2"), constr = TRUE
+    # hyper = multi.utils::tau_pc(x = 0.001, u = 2.5, alpha = 0.01)
+    )
+ # f(id.ref2, model="iid", group = id.age, control.group = list(model = "iid"),
+ #    constr = TRUE
+ #   # hyper = multi.utils::tau_pc(x = 0.001, u = 2.5, alpha = 0.01)
+ #   )
 
-df <- pred2 %>%
-  filter(!is.na(x_eff)) 
+# df <- pred2 %>%
+#   filter(!is.na(x_eff)) 
 
 #debugonce(multinomial_model)
-int <- multinomial_model(formula, "test", 1000)
+# int <- multinomial_model(formula, "test", 1000)
 
-int[["df"]]
+fit <- inla(formula, data = pred2, family = 'xPoisson',
+            control.predictor = list(link = 1),
+            control.compute = list(dic = TRUE, waic = TRUE,
+                                   cpo = TRUE, config = TRUE),
+            inla.mode = "experimental")
 
-int$df  %>% ggplot(aes(x=age, group = survey_id)) + geom_point(aes(y=(estimate))) + geom_line(aes(y=(prob_median))) + geom_ribbon(aes(ymin = (prob_lower), ymax = (prob_upper)), alpha = 0.4) + facet_wrap(~survey_id)
+df <- pred2 %>%
+  filter(across(all_of("x_eff"), ~!is.na(.x)))
+
+samples <- inla.posterior.sample(1000, fit)
+ind.effect <- 1:(nrow(pred2) - nrow(df))
+samples.effect = lapply(samples, function(x) x$latent[ind.effect])
+prev_samples <- matrix(sapply(samples.effect, cbind), ncol=1000)
+
+ident <- pred2[ind.effect, ]
+
+qtls <- apply(prev_samples, 1, quantile, c(0.025, 0.5, 0.975))
+
+prev <- ident %>%
+  ungroup() %>%
+  mutate(
+    lower = qtls[1,],
+    median = qtls[2,],
+    upper = qtls[3,]
+  )
+
+# int[["df"]] %>% View
+# 
+# int$df %>% 
+#   group_by(survey_id) %>%
+#   mutate(lambda_mean = lambda_mean/sum(lambda_mean)) %>%
+#   ggplot(aes(x=age, group = survey_id)) + 
+#   geom_point(aes(y=(estimate))) + 
+#   geom_line(aes(y=(lambda_mean))) + 
+#   # geom_ribbon(aes(ymin = (prob_lower), ymax = (prob_upper)), alpha = 0.4) + 
+#   facet_wrap(~survey_id) +
+#   standard_theme()
+
+prev %>%
+  group_by(iso3) %>%
+  mutate(rate = exp(median)/sum(exp(median))) %>%
+  ggplot(aes(x=age, group = survey_id)) +
+  geom_line(data = pred2, aes(y=estimate, color=survey_id), show.legend = FALSE) +
+  geom_line(aes(y=rate)) +
+  # geom_ribbon(aes(ymin = (prob_lower), ymax = (prob_upper)), alpha = 0.4) +
+  facet_wrap(~iso3) +
+  standard_theme()
 
 
 

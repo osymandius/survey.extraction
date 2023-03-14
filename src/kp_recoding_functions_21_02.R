@@ -364,7 +364,7 @@ multinomial_model <- function(formula, model_name, S = 1000) {
       #' Remove the obs_idx and n_eff_kish_new columns
       x_samples <- x[1:(length(x) - 2)]
       #' Normalise each column (to avoid overflow of softmax)
-      x_samples <- apply(x_samples, MARGIN = 2, FUN = function(x) x - max(x))
+      # x_samples <- apply(x_samples, MARGIN = 2, FUN = function(x) x - max(x))
       #' Exponentiate (can be done outside apply)
       #' WARNING: That these are samples from lambda posterior isn't true! Come back to this
       lambda_samples <- exp(x_samples)
