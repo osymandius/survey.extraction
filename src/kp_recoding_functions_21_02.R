@@ -131,7 +131,7 @@ new_recode_survey_variables <- function(df, survey_id_c, value_recode) {
 rds_adjust <- function(df, survey_id_c, variable_recode) {
   
   rds_survs <- variable_recode %>% 
-    filter(study_type == "rds")
+    filter(variable  == "coupon1")
   
   if(survey_id_c %in% rds_survs$survey_id) {
   
@@ -139,7 +139,7 @@ rds_adjust <- function(df, survey_id_c, variable_recode) {
   
   surv_type <- str_sub(survey_id_c, 8, -5)
   
-  if ("coupon1" %in% colnames(df) & "age" %in% colnames(df) ) {
+  if ("coupon1" %in% colnames(df) & "network_size" %in% colnames(df) & "age" %in% colnames(df) ) {
   
     df <- df %>% 
       mutate(age1 = factor(age)) %>% 

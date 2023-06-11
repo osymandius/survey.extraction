@@ -1,23 +1,24 @@
 library(RDS)
 library(tidyverse)
 library(rdhs)
-library(INLA)
+# library(INLA)
 library(sf)
 library(spdep)
 library(countrycode)
 library(stringdist)
-library(splines)
+# library(splines)
 library(multi.utils)
+library(moz.utils)
 
 # source("C:/Users/rla121/OneDrive - Imperial College London/Documents/GitHub/survey-extraction/src/kp_recoding_functions_21_02.R")
-# setwd("C:/Users/rla121/OneDrive - Imperial College London/Documents/GitHub/survey-extraction")
+setwd("C:/Users/rla121/OneDrive - Imperial College London/Documents/GitHub/survey-extraction")
 source("src/kp_recoding_functions_21_02.R")
 ssa_iso3 <- c("BDI", "BEN", "BFA", "CIV", "CMR", "COD", "COG", "GMB", "KEN", "LSO", "MLI", "MOZ", "MWI", "NGA", "SLE", "SWZ", "TCD", "TGO", "ZWE", "AGO", "ETH", "GAB", "GHA", "GIN", "LBR", "NAM", "NER", "RWA", "SEN", "TZA", "UGA", "ZMB")
 
 
 ### READ IN THE age_dat.csv (in survey-extraction/data) here and feel free to then hop on down to line 527 #### 
-age_dat2 <- read_csv("data/age_dat.csv")
-age_dat2 <- read_csv("~/Downloads/age_dat.csv")
+# age_dat2 <- read_csv("data/age_dat.csv")
+# age_dat2 <- read_csv("~/Downloads/age_dat.csv")
 
 
 
@@ -26,23 +27,6 @@ age_dat2 <- read_csv("~/Downloads/age_dat.csv")
 ### Recoding vars / values
       ## Analysis and file_type redundant for the time being
 # recoding_sheet <-  read_csv("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/00Admin/recoding_sheet.csv")
-recoding_sheet <-  read_csv("data/recoding_sheet.csv")
-
-variable_recode <- recoding_sheet %>% 
-  select(survey_id, variable, var_raw, study_type) %>% 
-  rename(var_label_raw = var_raw) %>% 
-  mutate(survey_id2 = survey_id) %>% 
-  separate(survey_id2, c(NA, "file_type")) %>% 
-  distinct() %>%
-  mutate(analysis = "kp") %>% 
-  filter(!variable == "cdm_location",
-         !variable == "subject_id",
-         !variable == c("residence", "hivtest_whenlast", "when_positive")) %>% ### removing residence is to get round the character/integer binding row problem later. A bridge to cross when we start looking at spatial issues
-  rename(var_raw = var_label_raw) 
-
-value_recode <- recoding_sheet %>% 
-  rename(value = val_recode) %>% 
-  filter(!is.na(val_raw))
 
 ## Sample survey for trialing functions
 
@@ -87,10 +71,40 @@ value_recode <- recoding_sheet %>%
 #paths <- intersect(list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = paste(unique(variable_recode$survey_id), collapse = "|")  , full.names = TRUE, recursive = TRUE), list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = ".rds"  , full.names = TRUE, recursive = TRUE))
 
 # paths <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", recursive = TRUE, pattern = ".rds", full.names = TRUE) %>%
+
+
+recoding_sheet <-  read_csv("data/recoding_sheet.csv")
+
+# variable_recode <- recoding_sheet %>% 
+#   select(survey_id, variable, var_raw, study_type) %>% 
+#   rename(var_label_raw = var_raw) %>% 
+#   mutate(survey_id2 = survey_id) %>% 
+#   separate(survey_id2, c(NA, "file_type")) %>% 
+#   distinct() %>%
+#   mutate(analysis = "kp") %>% 
+#   filter(!variable == "cdm_location",
+#          !variable == "subject_id",
+#          !variable == c("residence", "hivtest_whenlast", "when_positive")) %>% ### removing residence is to get round the character/integer binding row problem later. A bridge to cross when we start looking at spatial issues
+#   rename(var_raw = var_label_raw) 
+
+variable_recode <- recoding_sheet %>% 
+  select(survey_id, variable, var_raw, study_type) %>% 
+  rename(var_label_raw = var_raw) %>% 
+  mutate(survey_id2 = survey_id) %>% 
+  separate(survey_id2, c(NA, "file_type")) %>% 
+  distinct() %>%
+  mutate(analysis = "kp") %>% 
+  filter(variable %in% c( "network_size", "coupon1", "coupon2", "coupon3", "coupon4", "coupon5", "coupon6", "coupon7", "coupon8", "own_coupon", "age", "inject_yr", "network_size", "age_fs_paid", "age_fs_paidfor", "age_fs_paidorgift", "age_inject", "age_startsw", "age_startsw_cat", "duration_yr", "inject_dur" , "sex", "age_inject", "age_fs_paidorgift", "age_fs_man_anal", "age_fs_man" , "age_fs_woman", "age_fs_vag", "hiv")) %>% ### removing residence is to get round the character/integer binding row problem later. A bridge to cross when we start looking at spatial issues
+  rename(var_raw = var_label_raw) 
+
+value_recode <- recoding_sheet %>% 
+  rename(value = val_recode) %>% 
+  filter(!is.na(val_raw))
+
 paths <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/KP/Individual level data/", recursive = TRUE, pattern = ".rds", full.names = TRUE) %>%
-  lapply(., grep, pattern= "PWID|PLACE|CFSW|TG|NPP|TGW|TGM|MSW|code|Anne|v1|v2|cpt_fin|dbn_fin|jhb_fin|old", value = TRUE, invert = TRUE) %>%
+  lapply(., grep, pattern= "CFSW|PWUD|TG|TGW|PLACE|NPP|MSW|code|Anne|v1|v2|cpt_fin|dbn_fin|jhb_fin|old|.rdsobj|TIPVAL|hsh_rdsat_format.csv", value = TRUE, invert = TRUE) %>%
   unlist()
-  
+
 
 combined_datasets <- lapply(paths, readRDS)
 
@@ -100,13 +114,13 @@ surv_ids <- str_split(paths, "/") %>%
 
 surv_ids[surv_ids == "uga2021_fsw_bbs.rdsobj"] <- "UGA2021BBS_FSW.rds"
 surv_ids <- str_remove(surv_ids, ".rds")
-
 names(combined_datasets) <- surv_ids
 
 # combined_datasets <- combined_datasets[!names(combined_datasets) %in% c("NAM2019BBS_FSW", "NAM2019BBS_MSM", "SWZ2020BBS_FSW", 
 #                                                                         "CIV2020BBS_FSW", "MOZ2012BBS_FSW", "ZAF2013BBS_MSM", #This line is extract error
 #                                                                         )]
 
+combined_datasets <- combined_datasets[!names(combined_datasets) %in% c("GHA2011BBS_CFSW", "Cape Town TIPVAL 30Jan18.rds", "Pretoria_TipVal_30Jan18.rds", "UGA2012BBS_PWUD.rds", "CIV1999ACA_CFSW.rds", "GHA2011BBS_CFSW.rds", "MWI2019BBS_CFSW.rds" )]
 #### This is doing weird things.... the recoded datasets are in there amongst the chaos, I think. 
 all_extracted <- combined_datasets %>%
   Map(new_extract_fun,
@@ -128,20 +142,47 @@ all_recoded <- all_extracted %>%
       survey_id = names(.),
       list(value_recode))
 
+
+
+
+
 # all_extracted <- all_extracted[!names(all_extracted) %in% c("BEN2012ACA_FSW", "CIV2020BBS_MSM", "GHA2011BBS_FSW", "GHA2015BBS_FSW", "GHA2019BBS_FSW", "UGA2021BBS_MSM", "ZAF2014BBS_FSW" , "ZAF2017BBS_MSM")]
 library(RDS)
-all_recoded2 <- all_recoded[!names(all_recoded) %in% c("UGA2021BBS_MSM", "ZAF2017BBS_MSM")] # UGA2021 - rec.id loop; ZAF2017 - net.size
+all_recoded2 <- all_recoded[!names(all_recoded) %in% c("UGA2021BBS_MSM", "ZAF2017BBS_MSM", "UGA2012BBS_FSW", "UGA2012BBS_MSM", "ZAF2018BBS_FSW", "MOZ2011BBS_PWID", "COG2017BBS_MSM", "COG2017BBS_PWID")] # UGA2021 - rec.id loop; ZAF2017 - net.size, UGA2012BBS_FSW + UGA2012BBS_MSM  - Error in 1:(wave.one.start - 1) : NA/NaN argument , ZAF2018BBS_FSW - invalid network_size, COG2017BBS_MSM/PWID - no seeds in data
 
-all_rds <- all_recoded2 %>% 
+
+# Make coupons numeric
+extract_numeric <- function(column) {
+  str_extract(column, "\\d+")
+}
+# 
+# all_recoded2 <- lapply(all_recoded, function(df) {
+#   df %>%
+#     mutate(across(starts_with("coupon"), ~as.integer(extract_numeric(.)))) %>% 
+#     mutate(own_coupon = if ("own_coupon" %in% names(.))
+#       as.integer(extract_numeric(own_coupon)))
+# })
+
+# Access a specific dataframe with processed coupon columns
+
+
+system.time(all_rds <- all_recoded2 %>% 
   Map(rds_adjust,
+      df = .,
+      survey_id = names(.),
+      list(variable_recode)))
+
+rds_dur <- all_recoded2 %>% 
+  Map(rds_duration,
       df = .,
       survey_id = names(.),
       list(variable_recode))
 
+debugonce(rds_adjust)
+rds_adjust(all_recoded2$LSO2019BBS_FSW, "LSO2019BBS_FSW", variable_recode)
 
+system.time(wow <- rds_adjust(all_recoded2[[15]], "CIV2020BBS_FSW", variable_recode))
 
-# debugonce(rds_adjust)
-# rds_adjust(all_recoded$UGA2021BBS_MSM, "UGA2021BBS_MSM", variable_recode)
 # 
 # #
 # ## Testing for one survey
@@ -191,23 +232,46 @@ age_dat <- rds_df %>%
     convert = TRUE
   )
 
-#write_csv(age_dat, "C:/Users/rla121/Dropbox/KP/Individual KP/age_dat.csv")
+#write_csv(age_dat, "C:/Users/rla121/Downloads/age_dat.csv")
 
-
+surveys <- age_dat %>% 
+  mutate(survey_name = paste(survey_id, kp)) %>% 
+  mutate(iso3 = substr(survey_id2, 1,3)) %>% 
+  select(survey_name, iso3, kp) %>% 
+  distinct()
+write_csv(surveys, "C:/Users/rla121/Downloads/surveysforage_dat.csv")
 
 (age_plot <- age_dat %>% 
     filter(!age>49) %>% 
-  group_by(survey_id) %>% 
+  group_by(kp) %>% 
   ggplot() +
-  geom_line(aes(x = age, y = estimate, color = survey_id), se = FALSE, show.legend = TRUE) +
-   # geom_ribbon(aes(x = age, ymin = lower, ymax = upper, fill = survey_id), alpha = 0.4, show.legend = FALSE) +
+  geom_line(aes(x = age, y = estimate), se = FALSE, show.legend = TRUE) +
+    geom_ribbon(aes(x = age, ymin = lower, ymax = upper, fill = kp), alpha = 0.4, show.legend = FALSE) +
     moz.utils::standard_theme() +
   xlab("age") +
   ylab("proportion") +
     ggtitle("RDS Studies") + 
     facet_wrap(~kp, ncol =5))
 
-
+(age_plot <- age_dat %>%
+    ungroup() %>% 
+    filter(!kp %in% c("CFSW", "PWUD"),
+           !age>89) %>% 
+    mutate(estimate2 = estimate + 0.00000001) %>% 
+    ggplot() +
+    geom_density(aes(x = age, y = estimate2, color = survey_id), show.legend = TRUE) +
+    geom_point(aes(x = age, y = estimate)) +
+    # geom_ribbon(aes(x = age, ymin = lower, ymax = upper, fill = kp), alpha = 0.4, show.legend = FALSE) +
+    moz.utils::standard_theme() +
+    lims(x = c(10,50), y = c(0,0.25)) +
+    xlab("age") +
+    ylab("proportion") +
+    ggtitle("Age distributions") + 
+    facet_wrap(~kp, ncol =5))
+age_dat %>% 
+  filter(survey_id == "BDI2019ACA") %>% 
+  ggplot() +
+  geom_density(aes(x = age, y = estimate), show.legend = TRUE)
 # spec_paths <- c(list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Spectrum files/2022 final shared/Non-Generalized", pattern = "Niger_2022_v2_22032022.pjnz", ignore.case = TRUE, full.names = TRUE),
 #                 list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Spectrum files/2021 final shared/ESA", pattern = "Moz", ignore.case = TRUE, full.names = TRUE),
 #   list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Spectrum files/2022 final shared/EPP-Gen", pattern = "PJNZ", ignore.case = TRUE, full.names = TRUE),
@@ -244,7 +308,7 @@ age_dat2 <- age_dat %>%
   mutate(ageratio = estimate/genpop_estimate)
 
 
-write_csv(age_dat2, "C:/Users/rla121/Dropbox/KP/Individual KP/age_dat.csv")
+write_csv(age_dat2, "C:/Users/rla121/Downloads/age_dat.csv")
 # 
 # 
 # (age_rat_plot <- age_dat2 %>% 
@@ -535,10 +599,10 @@ ssa_iso3 <- countrycode::countrycode(ssa_names, "country.name", "iso3c")
 #   filter(CNTRY_NAME %in% c("Western Sahara", "Mauritania", "Morocco", "Algeria", "Libya", "Tunisia", "Egypt", "Somalia", "Djibouti", "Eritrea")) %>%
 #   bind_rows(read_sf("~/Downloads/ssd_adm_imwg_nbs_20220121/ssd_admbnda_adm0_imwg_nbs_20210924.shp"))
 
-ssd_boundary <- read_sf("~/Downloads/ssd_adm_imwg_nbs_20220121/ssd_admbnda_adm0_imwg_nbs_20210924.shp")
+ssd_boundary <- read_sf("C:/Users/rla121/Dropbox/KP/Useful/Geographies/ssd_adm_imwg_nbs_20220121/ssd_admbnda_adm0_imwg_nbs_20210924.shp")
 ssd_boundary_simple <- rmapshaper::ms_simplify(ssd_boundary, 0.05)
 
-geographies <- read_sf("~/Downloads/Longitude_Graticules_and_World_Countries_Boundaries-shp/99bfd9e7-bb42-4728-87b5-07f8c8ac631c2020328-1-1vef4ev.lu5nk.shp") %>%
+geographies <- read_sf("C:/Users/rla121/Dropbox/KP/Useful/Geographies/Longitude_Graticules_and_World_Countries_Boundaries-shp/99bfd9e7-bb42-4728-87b5-07f8c8ac631c2020328-1-1vef4ev.lu5nk.shp") %>%
   bind_rows(
     ssd_boundary_simple %>%
       transmute(CNTRY_NAME = "South Sudan")
@@ -547,6 +611,8 @@ geographies <- read_sf("~/Downloads/Longitude_Graticules_and_World_Countries_Bou
          area_name = countrycode(iso3, "iso3c", "country.name")) %>%
   filter(iso3 %in% ssa_iso3)
 
+geographies <- geographies %>% 
+  filter(iso3 %in% c("BDI", "BEN" ,"BFA" ,"CIV", "CMR" ,"COD", "COG", "GMB" ,"KEN" ,"LSO" ,"MLI" ,"MOZ", "MWI", "NGA", "SLE", "SWZ" ,"TCD", "TGO", "ZWE" ,"AGO" ,"ETH", "GAB" ,"GHA" ,"GIN", "LBR", "NAM" ,"NER", "RWA", "SEN" ,"TZA", "UGA" ,"ZMB", "ZAF", "SSD"))
 geographies <- geographies %>%
   arrange(iso3) %>%
   mutate(id.iso3 = as.numeric(factor(iso3))) %>%
@@ -562,13 +628,13 @@ bbox <- c(xmin = -17.5327797,
 
 geographies <- st_crop(geographies, bbox)
 
-# temp_geog2 <- poly2nb(geographies)
-# 
-# nb2INLA("geog.adj", temp_geog2)
-# geog.adj <- paste(getwd(), "/geog.graph2", sep="")
-# 
-# GG <- inla.read.graph(filename = "geog.graph2")
-# image(inla.graph2matrix(GG), xlab = "", ylab="")
+temp_geog2 <- poly2nb(geographies)
+
+nb2INLA("geog.adj", temp_geog2)
+geog.adj <- paste(getwd(), "/geog.graph2", sep="")
+
+GG <- inla.read.graph(filename = "geog.graph2")
+image(inla.graph2matrix(GG), xlab = "", ylab="")
 
 
 
@@ -608,7 +674,7 @@ pred2 <- crossing(iso3 = ssa_iso3,
   ungroup()
   
 
-
+write_csv(pred2, "C:/Users/rla121/Downloads/pred2.csv")
 
 # formula <- n ~ totpop + f(age, model = "ar1") + f(id.ref) + f(id.iso3, model="besag", graph=geog.adj, scale.model = TRUE)
 # formula <- n ~ genpop_estimate + f(age, model = "ar1") + f(id.ref) + f(id.iso3, model="besag", graph=geog.adj, scale.model = TRUE)
@@ -630,14 +696,28 @@ formula <- x_eff ~ -1 + f(id.ref, model = "iid" , hyper = multi.utils::tau_fixed
  #    constr = TRUE
  #   # hyper = multi.utils::tau_pc(x = 0.001, u = 2.5, alpha = 0.01)
  #   )
-
+formula <- ageratio ~ -1 + f(id.ref, model = "iid" , hyper = multi.utils::tau_fixed(1E-6)) +
+  bs(id.age, df = 5)  +
+  # f(id.age, model = "ar1") +
+  f(id.iso3, model="besag", graph="geog.adj", scale.model = TRUE, group = id.age, control.group = list(model = "rw2"), constr = TRUE
+    # hyper = multi.utils::tau_pc(x = 0.001, u = 2.5, alpha = 0.01)
+  )
 # df <- pred2 %>%
 #   filter(!is.na(x_eff)) 
 
 #debugonce(multinomial_model)
 # int <- multinomial_model(formula, "test", 1000)
 
-fit <- inla(formula, data = pred2, family = 'xPoisson',
+
+
+
+
+
+
+fit <- inla(formula, 
+            data = pred2, 
+            family = "xPoisson",
+            # offset = x_eff, - added this in 
             control.predictor = list(link = 1),
             control.compute = list(dic = TRUE, waic = TRUE,
                                    cpo = TRUE, config = TRUE),
@@ -683,7 +763,7 @@ prev %>%
   geom_line(aes(y=rate)) +
   # geom_ribbon(aes(ymin = (prob_lower), ymax = (prob_upper)), alpha = 0.4) +
   facet_wrap(~iso3) +
-  standard_theme()
+  moz.utils::standard_theme()
 
 
 
