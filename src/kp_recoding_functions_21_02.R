@@ -155,15 +155,22 @@ rds_adjust <- function(df, survey_id_c, variable_recode) {
     # vars <- intersect(c("hiv", "age_fs", "age1","hepb", "syphilis", "age_first_paid"), colnames(df))
     vars <- "age1"
     
+    coupons <- colnames(df)[grep("^coupon", colnames(df))]
+    
+    num_coupons <- length(coupons)
+    
     df$recruiter.id <- rid.from.coupons(df, subject.id='subject_id', 
                                         subject.coupon='own_coupon', 
-                                        coupon.variables=c("coupon1","coupon2","coupon3"))
+                                        # coupon.variables=c("coupon1","coupon2","coupon3"),
+                                        coupon.variables = coupons)
     
     df <- as.rds.data.frame(df, id='subject_id', 
                             recruiter.id='recruiter.id',
                             network.size='network_size',
                             population.size=c(NA,NA,NA), 
-                            max.coupons=3, notes=NULL)
+                            # max.coupons=3, 
+                            max.coupons = num_coupons,
+                            notes=NULL)
     
     df$seed <- get.seed.id(df)
     df$wave <- get.wave(df)

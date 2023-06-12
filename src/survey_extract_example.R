@@ -102,7 +102,7 @@ value_recode <- recoding_sheet %>%
   filter(!is.na(val_raw))
 
 paths <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/KP/Individual level data/", recursive = TRUE, pattern = ".rds", full.names = TRUE) %>%
-  lapply(., grep, pattern= "CFSW|PWUD|TG|TGW|PLACE|NPP|MSW|code|Anne|v1|v2|cpt_fin|dbn_fin|jhb_fin|old|.rdsobj|TIPVAL|hsh_rdsat_format.csv", value = TRUE, invert = TRUE) %>%
+  lapply(., grep, pattern= "CFSW|PWUD|_TG|TGW|PLACE|NPP|MSW|code|Anne|v1|v2|cpt_fin|dbn_fin|jhb_fin|old|.rdsobj|TIPVAL|hsh_rdsat_format.csv", value = TRUE, invert = TRUE) %>%
   unlist()
 
 
@@ -148,7 +148,7 @@ all_recoded <- all_extracted %>%
 
 # all_extracted <- all_extracted[!names(all_extracted) %in% c("BEN2012ACA_FSW", "CIV2020BBS_MSM", "GHA2011BBS_FSW", "GHA2015BBS_FSW", "GHA2019BBS_FSW", "UGA2021BBS_MSM", "ZAF2014BBS_FSW" , "ZAF2017BBS_MSM")]
 library(RDS)
-all_recoded2 <- all_recoded[!names(all_recoded) %in% c("UGA2021BBS_MSM", "ZAF2017BBS_MSM", "UGA2012BBS_FSW", "UGA2012BBS_MSM", "ZAF2018BBS_FSW", "MOZ2011BBS_PWID", "COG2017BBS_MSM", "COG2017BBS_PWID")] # UGA2021 - rec.id loop; ZAF2017 - net.size, UGA2012BBS_FSW + UGA2012BBS_MSM  - Error in 1:(wave.one.start - 1) : NA/NaN argument , ZAF2018BBS_FSW - invalid network_size, COG2017BBS_MSM/PWID - no seeds in data
+all_recoded2 <- all_recoded[!names(all_recoded) %in% c("UGA2021BBS_MSM", "ZAF2017BBS_MSM", "UGA2012BBS_FSW", "UGA2012BBS_MSM", "ZAF2018BBS_FSW", "MOZ2011BBS_PWID", "MOZ2014BBS_PWID", "COG2017BBS_MSM", "COG2017BBS_PWID", "UGA2021BBS_FSW")] # UGA2021 - rec.id loop; ZAF2017 - net.size, UGA2012BBS_FSW + UGA2012BBS_MSM + MOZ2014BBS_PWID  - Error in 1:(wave.one.start - 1) : NA/NaN argument , ZAF2018BBS_FSW - invalid network_size, COG2017BBS_MSM/PWID - no seeds in data; UGA2021BBS_FSW - Error in if (is.data.frame(res) && (id %in% names(res)) && (rid %in% names(res))) { : missing value where TRUE/FALSE needed
 
 
 # Make coupons numeric
