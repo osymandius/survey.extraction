@@ -11,10 +11,10 @@ library(multi.utils)
 library(moz.utils)
 
 # source("C:/Users/rla121/OneDrive - Imperial College London/Documents/GitHub/survey-extraction/src/kp_recoding_functions_21_02.R")
-setwd("C:/Users/rla121/OneDrive - Imperial College London/Documents/GitHub/survey-extraction")
+# setwd("C:/Users/rla121/OneDrive - Imperial College London/Documents/GitHub/survey-extraction")
 source("src/kp_recoding_functions_21_02.R")
-ssa_iso3 <- c("BDI", "BEN", "BFA", "CIV", "CMR", "COD", "COG", "GMB", "KEN", "LSO", "MLI", "MOZ", "MWI", "NGA", "SLE", "SWZ", "TCD", "TGO", "ZWE", "AGO", "ETH", "GAB", "GHA", "GIN", "LBR", "NAM", "NER", "RWA", "SEN", "TZA", "UGA", "ZMB")
-
+# ssa_iso3 <- c("BDI", "BEN", "BFA", "CIV", "CMR", "COD", "COG", "GMB", "KEN", "LSO", "MLI", "MOZ", "MWI", "NGA", "SLE", "SWZ", "TCD", "TGO", "ZWE", "AGO", "ETH", "GAB", "GHA", "GIN", "LBR", "NAM", "NER", "RWA", "SEN", "TZA", "UGA", "ZMB")
+ssa_iso3 <- moz.utils::ssa_iso3()
 
 ### READ IN THE age_dat.csv (in survey-extraction/data) here and feel free to then hop on down to line 527 #### 
 # age_dat2 <- read_csv("data/age_dat.csv")
@@ -87,6 +87,9 @@ recoding_sheet <-  read_csv("data/recoding_sheet.csv")
 #          !variable == c("residence", "hivtest_whenlast", "when_positive")) %>% ### removing residence is to get round the character/integer binding row problem later. A bridge to cross when we start looking at spatial issues
 #   rename(var_raw = var_label_raw) 
 
+
+#### This is for age and duration ####
+
 variable_recode <- recoding_sheet %>% 
   select(survey_id, variable, var_raw, study_type) %>% 
   rename(var_label_raw = var_raw) %>% 
@@ -97,12 +100,28 @@ variable_recode <- recoding_sheet %>%
   filter(variable %in% c( "network_size", "coupon1", "coupon2", "coupon3", "coupon4", "coupon5", "coupon6", "coupon7", "coupon8", "own_coupon", "age", "inject_yr", "network_size", "age_fs_paid", "age_fs_paidfor", "age_fs_paidorgift", "age_inject", "age_startsw", "age_startsw_cat", "duration_yr", "inject_dur" , "sex", "age_inject", "age_fs_paidorgift", "age_fs_man_anal", "age_fs_man" , "age_fs_woman", "age_fs_vag", "hiv")) %>% ### removing residence is to get round the character/integer binding row problem later. A bridge to cross when we start looking at spatial issues
   rename(var_raw = var_label_raw) 
 
+######### This is for old MSM ####
+
+# variable_recode <- recoding_sheet %>% 
+#   select(survey_id, variable, var_raw, study_type) %>% 
+#   rename(var_label_raw = var_raw) %>% 
+#   mutate(survey_id2 = survey_id) %>% 
+#   separate(survey_id2, c(NA, "file_type")) %>% 
+#   distinct() %>%
+#   mutate(analysis = "kp") %>% 
+#   filter(variable %in% c( "network_size", "coupon1", "coupon2", "coupon3", "coupon4", "coupon5", "coupon6", "coupon7", "coupon8", "own_coupon", "age", "age_cat", "hiv", "age_2ndlastpartner", "age_3rdlastpartner", "age_4thlastpartner", "age_5thlastpartner", "age_lastpartner", "client_age", "client_agediff", "partner1_age", "partner2_age", "partner3_age", "partner4_age", "partner5_age", "sw_age", "sw_agediff", "partners_male_Y010_014", "partners_male_Y015_019", "partners_male_Y020_024", "partners_male_Y025_029", "partners_male_Y030_034", "partners_male_Y030_39", "partners_male_Y040_044", "partners_male_Y045_049", "partners_male_Y040_049", "partners_male_Y050up")) %>% ### removing residence is to get round the character/integer binding row problem later. A bridge to cross when we start looking at spatial issues
+#   rename(var_raw = var_label_raw) 
+
+
+
+
+
 value_recode <- recoding_sheet %>% 
   rename(value = val_recode) %>% 
   filter(!is.na(val_raw))
 
 paths <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/KP/Individual level data/", recursive = TRUE, pattern = ".rds", full.names = TRUE) %>%
-  lapply(., grep, pattern= "CFSW|PWUD|_TG|TGW|PLACE|NPP|MSW|code|Anne|v1|v2|cpt_fin|dbn_fin|jhb_fin|old|.rdsobj|TIPVAL|hsh_rdsat_format.csv", value = TRUE, invert = TRUE) %>%
+  lapply(., grep, pattern= "agedata|durationdata|ACAPUBLIC|CFSW|PWUD|_TG|TGW|PLACE|NPP|MSW|code|Anne|v1|v2|cpt_fin|dbn_fin|jhb_fin|old|.rdsobj|TIPVAL|hsh_rdsat_format.csv", value = TRUE, invert = TRUE) %>%
   unlist()
 
 
@@ -110,9 +129,9 @@ combined_datasets <- lapply(paths, readRDS)
 
 surv_ids <- str_split(paths, "/") %>%
   lapply(tail, 1) %>%
-  unlist()
+  unlist() 
 
-surv_ids[surv_ids == "uga2021_fsw_bbs.rdsobj"] <- "UGA2021BBS_FSW.rds"
+# surv_ids[surv_ids == "uga2021_fsw_bbs.rdsobj"] <- "UGA2021BBS_FSW.rds"
 surv_ids <- str_remove(surv_ids, ".rds")
 names(combined_datasets) <- surv_ids
 
@@ -120,8 +139,9 @@ names(combined_datasets) <- surv_ids
 #                                                                         "CIV2020BBS_FSW", "MOZ2012BBS_FSW", "ZAF2013BBS_MSM", #This line is extract error
 #                                                                         )]
 
-combined_datasets <- combined_datasets[!names(combined_datasets) %in% c("GHA2011BBS_CFSW", "Cape Town TIPVAL 30Jan18.rds", "Pretoria_TipVal_30Jan18.rds", "UGA2012BBS_PWUD.rds", "CIV1999ACA_CFSW.rds", "GHA2011BBS_CFSW.rds", "MWI2019BBS_CFSW.rds" )]
-#### This is doing weird things.... the recoded datasets are in there amongst the chaos, I think. 
+# combined_datasets <- combined_datasets[!names(combined_datasets) %in% c("GHA2011BBS_CFSW", "Cape Town TIPVAL 30Jan18.rds", "Pretoria_TipVal_30Jan18.rds", "UGA2012BBS_PWUD.rds", "CIV1999ACA_CFSW.rds", "GHA2011BBS_CFSW.rds", "MWI2019BBS_CFSW.rds" )]
+
+
 all_extracted <- combined_datasets %>%
   Map(new_extract_fun,
       df = .,
@@ -148,38 +168,109 @@ all_recoded <- all_extracted %>%
 
 # all_extracted <- all_extracted[!names(all_extracted) %in% c("BEN2012ACA_FSW", "CIV2020BBS_MSM", "GHA2011BBS_FSW", "GHA2015BBS_FSW", "GHA2019BBS_FSW", "UGA2021BBS_MSM", "ZAF2014BBS_FSW" , "ZAF2017BBS_MSM")]
 library(RDS)
-all_recoded2 <- all_recoded[!names(all_recoded) %in% c("UGA2021BBS_MSM", "ZAF2017BBS_MSM", "UGA2012BBS_FSW", "UGA2012BBS_MSM", "ZAF2018BBS_FSW", "MOZ2011BBS_PWID", "MOZ2014BBS_PWID", "COG2017BBS_MSM", "COG2017BBS_PWID", "UGA2021BBS_FSW")] # UGA2021 - rec.id loop; ZAF2017 - net.size, UGA2012BBS_FSW + UGA2012BBS_MSM + MOZ2014BBS_PWID  - Error in 1:(wave.one.start - 1) : NA/NaN argument , ZAF2018BBS_FSW - invalid network_size, COG2017BBS_MSM/PWID - no seeds in data; UGA2021BBS_FSW - Error in if (is.data.frame(res) && (id %in% names(res)) && (rid %in% names(res))) { : missing value where TRUE/FALSE needed
+all_recoded2 <- all_recoded[!names(all_recoded) %in% c("UGA2021BBS_MSM", "ZAF2017BBS_MSM", "UGA2012BBS_FSW", "UGA2012BBS_MSM", "ZAF2018BBS_FSW", "MOZ2011BBS_PWID", "MOZ2014BBS_PWID", "COG2017BBS_MSM", "COG2017BBS_PWID", "UGA2021BBS_FSW", "BDI2021BBS_FSW", "COD2022PSE_FSW", "COD2022PSE_PWID", "TZA2022BBS_PWID")] # UGA2021 - rec.id loop; ZAF2017 - net.size, UGA2012BBS_FSW + UGA2012BBS_MSM + MOZ2014BBS_PWID + TZA2022BBS_PWID  - Error in 1:(wave.one.start - 1) : NA/NaN argument , ZAF2018BBS_FSW - invalid network_size, COG2017BBS_MSM/PWID - no seeds in data; UGA2021BBS_FSW - Error in if (is.data.frame(res) && (id %in% names(res)) && (rid %in% names(res))) { : missing value where TRUE/FALSE needed ; COD2022PSE_FSW + COD2022PSE_PWID - Error in assert.valid.rds.data.frame(x) : Subjects can not recruit themselves.
+
+all_recoded_spare <- all_recoded2[!names(all_recoded2) %in% c("NAM2019BBS_MSM")] 
+all_recoded_spare1 <- all_recoded2[!names(all_recoded2) %in% c("TZA2022BBS_PWID", "ZMB2017BBS_FSW")]
+# ZMB2017BBS_FSW Error in matrix(freq$interval, nrow = cat) : 'data' must be of a vector type, was 'NULL' In addition: Warning message:  In RDS.bootstrap.intervals.local(rds.data, outcome.variable, weight.type,  : duration1 has only one level. Skipping...
 
 
 # Make coupons numeric
-extract_numeric <- function(column) {
-  str_extract(column, "\\d+")
-}
+# extract_numeric <- function(column) {
+  # str_extract(column, "\\d+")
+
 # 
-# all_recoded2 <- lapply(all_recoded, function(df) {
-#   df %>%
-#     mutate(across(starts_with("coupon"), ~as.integer(extract_numeric(.)))) %>% 
-#     mutate(own_coupon = if ("own_coupon" %in% names(.))
-#       as.integer(extract_numeric(own_coupon)))
-# })
+all_recoded_basic <- lapply(all_recoded, function(df) {
+  df %>%
+    mutate(across(starts_with("coupon"), ~as.integer(extract_numeric(.))),
+           across(starts_with("age_fs"), ~as.integer(extract_numeric(.))),
+           across(starts_with("sex"), ~as.integer(extract_numeric(.))),
+           across(starts_with("hiv"), ~as.integer(extract_numeric(.))),
+           across(starts_with("age"), ~as.integer(extract_numeric(.)))) %>%
+    mutate(own_coupon = if ("own_coupon" %in% names(.))
+      as.integer(extract_numeric(own_coupon)),
+      ) 
+})
 
-# Access a specific dataframe with processed coupon columns
+unweighted_dat <- all_recoded_basic %>% 
+    bind_rows() %>% 
+  moz.utils::separate_survey_id() %>% 
+  group_by(survey_id) %>% 
+  mutate(sample_size_surv = n()) %>% 
+  ungroup()
 
 
-system.time(all_rds <- all_recoded2 %>% 
-  Map(rds_adjust,
+write_csv(unweighted_dat, "C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/KP/Individual level data/00Admin/Data extracts/unweighted_dat_0210.csv")
+
+
+
+system.time(rds_dur1 <- all_recoded2 %>% 
+  Map(rds_adjust, #duration_yr
       df = .,
       survey_id = names(.),
       list(variable_recode)))
 
-rds_dur <- all_recoded2 %>% 
-  Map(rds_duration,
+rds_dur2 <- all_recoded2 %>% 
+  Map(rds_adjust_dur4, #age - age_startsw
       df = .,
       survey_id = names(.),
       list(variable_recode))
 
-debugonce(rds_adjust)
-rds_adjust(all_recoded2$LSO2019BBS_FSW, "LSO2019BBS_FSW", variable_recode)
+rds_dur3 <- all_recoded2 %>% 
+  Map(rds_adjust_dur3, #age - age_fs_paidorgift
+      df = .,
+      survey_id = names(.),
+      list(variable_recode))
+
+rds_dur4 <- all_recoded_spare %>% 
+  Map(rds_adjust_dur2, #age - age_fs_paid
+      df = .,
+      survey_id = names(.),
+      list(variable_recode))
+
+rds_dur5 <- all_recoded2 %>% 
+  Map(rds_adjust_durmsm, #age - age_fs_man
+      df = .,
+      survey_id = names(.),
+      list(variable_recode))
+
+rds_dur6 <- all_recoded2 %>% 
+  Map(rds_adjust_durmsm2, #age - age_fs_man_anal
+      df = .,
+      survey_id = names(.),
+      list(variable_recode))
+
+rds_dur7 <- all_recoded_spare1 %>% 
+  Map(rds_adjust_pwid, #age - age_inject
+      df = .,
+      survey_id = names(.),
+      list(variable_recode))
+
+
+rds_dur9 <- all_recoded_spare1 %>% 
+  Map(rds_adjust_dur1, #inject_dur ##this didn't work
+      df = .,
+      survey_id = names(.),
+      list(variable_recode))
+
+rds_age <- all_recoded2 %>% 
+  Map(rds_adjust_age, #age
+      df = .,
+      survey_id = names(.),
+      list(variable_recode))
+
+
+# rds_partnerage<- all_recoded2 %>% 
+  # Map(rds_adjust_partnerage,
+  #     df = .,
+  #     survey_id = names(.),
+  #     list(variable_recode))
+
+
+debugonce(rds_adjust_partnerage)
+trial <- rds_adjust_partnerage(all_recoded2$NAM2019BBS_MSM, "NAM2019BBS_MSM", variable_recode)
+
+
 
 system.time(wow <- rds_adjust(all_recoded2[[15]], "CIV2020BBS_FSW", variable_recode))
 
@@ -202,24 +293,87 @@ system.time(wow <- rds_adjust(all_recoded2[[15]], "CIV2020BBS_FSW", variable_rec
 ##############################
 #### Making lists data frames 
 
-rds_df <- bind_rows(all_rds) %>% 
+
+  objects <- ls(envir = .GlobalEnv)
+
+# to_match <- c("^rds_dur", "^rds_age")
+# rds_sets <- grep("^rds_dur", objects, value = T)
+rds_sets <- c("rds_dur1","rds_dur2","rds_dur3","rds_dur4","rds_dur5","rds_dur6","rds_dur7","rds_dur9", "rds_age")
+
+  rds_dfs <- list()
+
+
+
+for(i in rds_sets){
+    df <- get(i, envir = .GlobalEnv)
+
+    df <- bind_rows(df)
+    
+    rds_dfs[[i]] <- df
+}
+  
+rds_df <- bind_rows(rds_dfs)
+
+
+rds_df <- bind_rows(rds_dur1) %>% 
   mutate(survey_id2 = survey_id) 
 
 #all_recoded <- all_recoded[names(all_recoded) != "UGA2021BBS_FSW"]
-nonrds_list <- all_recoded[!names(all_recoded) %in% rds_df$survey_id2]
+nonrds_list <- all_recoded[!names(all_recoded) %in% rds_df$survey_id]
   
 non_rdsdat <- nonrds_list %>% lapply(function(x) {
-  if(is.null(unique(x$age)))
-    x
-  else
-     x %>% mutate(age = as.numeric(age))
-  }) %>% lapply(select, any_of(c("age", "subject_id"))) %>% bind_rows(.id = "survey_id")
+  # if(is.null(unique(x$age)))
+  #   x
+  # else
+  #    # x %>% mutate(age = as.numeric(age))
+    x %>% mutate_if(is.character, as.numeric)
+  }) %>% lapply(select, any_of(c("age", "inject_yr", "age_fs_paid", "age_fs_paidfor", "age_fs_paidorgift", "age_inject", "age_startsw", "age_startsw_cat", "duration_yr", "inject_dur" , "age_inject", "age_fs_paidorgift", "age_fs_man_anal", "age_fs_man", "hiv"))) %>% 
+  bind_rows(.id = "survey_id") %>% 
+  mutate(age = ifelse(age > 87 | age < 10, NA_integer_, age),
+         age_fs_paid = ifelse(age_fs_paid < 10, NA_integer_, age - age_fs_paid), 
+         age_fs_paidorgift = ifelse(age_fs_paidorgift < 10, NA_integer_, age - age_fs_paidorgift),
+         age_fs_man = ifelse(age_fs_man >= age, NA_integer_, age - age_fs_man),
+         age_fs_man_anal = ifelse(age_fs_man_anal >= age, NA_integer_, age - age_fs_man_anal),
+         age_startsw = ifelse(age_startsw < 10, NA_integer_, age - age_startsw),
+         duration_yr = ifelse(age - duration_yr <10, NA_integer_, duration_yr),
+         inject_dur = ifelse(age - inject_dur < 10, NA_integer_, inject_dur),
+         age_inject = ifelse(age_inject < 10, NA_integer_, age - age_inject)) %>% 
+  pivot_longer(cols = age:inject_dur, names_to = "vars" ) %>% 
+  group_by(survey_id, vars, value) %>% 
+  mutate(n = n()) %>% 
+  ungroup() %>% 
+  distinct() %>% 
+  filter(!is.na(value)) %>% 
+  group_by(survey_id, vars) %>% 
+  mutate(estimate = n/sum(n)) %>% 
+  ungroup() %>% 
+  rename(category = value) %>% 
+  bind_rows(rds_df %>% mutate(category = as.numeric(category)))
 
-non_rdsdat <- non_rdsdat %>%
-  filter(!is.na(age)) %>%
-  group_by(survey_id) %>%
-  count(age) %>%
-  mutate(estimate = n/sum(n))
+# non_rdsdat <- non_rdsdat %>%
+#   filter(!is.na(age)) %>%
+#   group_by(survey_id) %>%
+#   count(age) %>%
+#   mutate(estimate = n/sum(n))
+
+non_rdsdat <- non_rdsdat %>% 
+  separate_survey_id() %>% 
+  mutate(vars = case_when(var == "age1" ~ "age",
+                          var == "duration1" ~ "duration_yr",
+                          var == "duration2" ~ "age_fs_paid",
+                          var == "duration3" ~ "age_fs_paidorgift", 
+                          var == "duration4" ~ "age_startsw",
+                          var == "durationmsm" ~ "age_fs_man",
+                          var == "durationmsm2" ~ "age_fs_man_anal",
+                          var == "durationpwid" ~ "age_inject",
+                          T ~ vars
+                          ))
+
+
+saveRDS(non_rdsdat, "C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/KP/Individual level data/00Admin/Data extracts/fullweightedandunweighteddata_0210.rds")
+
+
+#### FIN 
   
 age_dat <- rds_df %>%
   rename(age = category) %>%
