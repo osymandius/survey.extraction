@@ -13,6 +13,7 @@ library(moz.utils)
 # source("C:/Users/rla121/OneDrive - Imperial College London/Documents/GitHub/survey-extraction/src/kp_recoding_functions_21_02.R")
 # setwd("C:/Users/rla121/OneDrive - Imperial College London/Documents/GitHub/survey-extraction")
 source("src/kp_recoding_functions_21_02.R")
+# source("kp_recoding_functions_21_02.R")
 # ssa_iso3 <- c("BDI", "BEN", "BFA", "CIV", "CMR", "COD", "COG", "GMB", "KEN", "LSO", "MLI", "MOZ", "MWI", "NGA", "SLE", "SWZ", "TCD", "TGO", "ZWE", "AGO", "ETH", "GAB", "GHA", "GIN", "LBR", "NAM", "NER", "RWA", "SEN", "TZA", "UGA", "ZMB")
 ssa_iso3 <- moz.utils::ssa_iso3()
 
@@ -90,6 +91,16 @@ recoding_sheet <-  read_csv("data/recoding_sheet.csv")
 
 #### This is for age and duration ####
 
+# variable_recode <- recoding_sheet %>% 
+#   select(survey_id, variable, var_raw, study_type) %>% 
+#   rename(var_label_raw = var_raw) %>% 
+#   mutate(survey_id2 = survey_id) %>% 
+#   separate(survey_id2, c(NA, "file_type")) %>% 
+#   distinct() %>%
+#   mutate(analysis = "kp") %>% 
+#   filter(variable %in% c( "network_size", "coupon1", "coupon2", "coupon3", "coupon4", "coupon5", "coupon6", "coupon7", "coupon8", "own_coupon", "age", "inject_yr", "network_size", "age_fs_paid", "age_fs_paidfor", "age_fs_paidorgift", "age_inject", "age_startsw", "age_startsw_cat", "duration_yr", "inject_dur" , "sex", "age_inject", "age_fs_paidorgift", "age_fs_man_anal", "age_fs_man" , "age_fs_woman", "age_fs_vag", "hiv")) %>% ### removing residence is to get round the character/integer binding row problem later. A bridge to cross when we start looking at spatial issues
+#   rename(var_raw = var_label_raw) 
+
 variable_recode <- recoding_sheet %>% 
   select(survey_id, variable, var_raw, study_type) %>% 
   rename(var_label_raw = var_raw) %>% 
@@ -97,7 +108,7 @@ variable_recode <- recoding_sheet %>%
   separate(survey_id2, c(NA, "file_type")) %>% 
   distinct() %>%
   mutate(analysis = "kp") %>% 
-  filter(variable %in% c( "network_size", "coupon1", "coupon2", "coupon3", "coupon4", "coupon5", "coupon6", "coupon7", "coupon8", "own_coupon", "age", "inject_yr", "network_size", "age_fs_paid", "age_fs_paidfor", "age_fs_paidorgift", "age_inject", "age_startsw", "age_startsw_cat", "duration_yr", "inject_dur" , "sex", "age_inject", "age_fs_paidorgift", "age_fs_man_anal", "age_fs_man" , "age_fs_woman", "age_fs_vag", "hiv")) %>% ### removing residence is to get round the character/integer binding row problem later. A bridge to cross when we start looking at spatial issues
+  filter(variable %in% c( "age", "hiv")) %>% ### removing residence is to get round the character/integer binding row problem later. A bridge to cross when we start looking at spatial issues
   rename(var_raw = var_label_raw) 
 
 ######### This is for old MSM ####
@@ -123,6 +134,7 @@ value_recode <- recoding_sheet %>%
 paths <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/KP/Individual level data/", recursive = TRUE, pattern = ".rds", full.names = TRUE) %>%
   lapply(., grep, pattern= "agedata|durationdata|ACAPUBLIC|CFSW|PWUD|_TG|TGW|PLACE|NPP|MSW|code|Anne|v1|v2|cpt_fin|dbn_fin|jhb_fin|old|.rdsobj|TIPVAL|hsh_rdsat_format.csv", value = TRUE, invert = TRUE) %>%
   unlist()
+
 
 
 combined_datasets <- lapply(paths, readRDS)
