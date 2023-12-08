@@ -838,53 +838,40 @@ rds_adjust_age <- function(df, survey_id_c, variable_recode) {
   }}
 
 
-rds_adjust2 <- function(df, survey_id_c) {
+rds_adjust2 <- function(df, survey_id_c, variable_recode) {
   
-  message(survey_id_c)
+  rds_survs <- variable_recode %>% 
+    filter(variable  == "coupon1")
+  
+  if(survey_id_c %in% rds_survs$survey_id) {
+    
+    message(survey_id_c)
   
   surv_type <- str_sub(survey_id_c, 8, -5)
   
-  if (surv_type=="BBS") {
+  if ("coupon1" %in% colnames(df) & "network_size" %in% colnames(df) & "age" %in% colnames(df) &  "hiv" %in% colnames(df) ) {
     
     subject.id = "subject_id" 
     subject.coupon = "own_coupon" 
-    coupon.variables=c("coupon1", "coupon2", "coupon3")
+    coupons <- colnames(df)[grep("^coupon", colnames(df))]
+    
+    num_coupons <- length(coupons)
     network_size = "network_size"
     
-  # df <- df %>%
-   #     dplyr::mutate(age_group_label = cut(age, c(0, seq(5, 85, 5)-1), c(paste0(seq(0, 79, 5), "-", seq(5, 80, 5)-1), "80+"), include.lowest=TRUE)) %>%
-    #  dplyr::left_join(naomi::get_age_groups() %>% select(age_group, age_group_label)) %>%
-     #  dplyr::select(-age_group_label) %>% 
-    #filter(!(coupon1 == own_coupon))  
-  
- # df <- df %>%
-  #  dplyr::mutate(age_group_label = cut(age, c(0, seq(2, 81, 2)-1), c(paste0(seq(0, 77, 2), "-", seq(2, 79, 2)-1), "80+"), include.lowest=TRUE)) %>%
-   #dplyr::left_join(naomi::get_age_groups() %>% select(age_group, age_group_label)) %>%
-  #dplyr::select(-age_group_label) %>% 
-#  filter(!(coupon1 == own_coupon)) 
     df <- df %>%
+      filter(age > 15, 
+             age < 49) %>% 
       dplyr::mutate(age_group_label = factor(age)) %>%
       dplyr::left_join(naomi::get_age_groups() %>% 
       select(age_group, age_group_label)) %>%
       #dplyr::select(-age_group_label) %>% 
       filter(!(coupon1 == own_coupon))  
    
-    #df1b <- df %>% 
-     # mutate(recruitor.id = rid.from.coupons(df, subject.id=subject.id, 
-      #                                       subject.coupon=subject.coupon, 
-       #                                      coupon.variables=coupon.variables))
+ 
     recruitor.id = "recruitor.id"
     
-    #df <- as.rds.data.frame(df, id = subject.id, 
-     #                 recruiter.id=recruitor.id,
-      #                network.size = network_size,
-       #               population.size=c(NA,NA,NA), 
-        #              max.coupons=3, notes=NULL) 
-    
-  #    df$seed = get.seed.id(df)
-   #          df$wave = get.wave(df)
-    
-    vars <- intersect(c("hiv", "age_fs","hepb", "syphilis", "age_first_paid"), colnames(df))
+   
+    vars <- intersect(c("hiv", "age"), colnames(df))
     
     df2 <- df %>% 
       group_by(age_group_label) %>% 
@@ -902,22 +889,15 @@ rds_adjust2 <- function(df, survey_id_c) {
       
     nboot <- 30
     
-    #vars <- colnames(df)
-        #df <- df %>% 
-    #filter(!is.na(subject_id))
-    
-    #x$recruiter.id <- rid.from.coupons(x, subject.id=subject.id, 
-     #                                                      subject.coupon=subject.coupon, 
-      #                                                     coupon.variables=coupon.variables)
     x$recruitor.id <- rid.from.coupons(x, subject.id=subject.id, 
                                                       subject.coupon=subject.coupon, 
-                                                      coupon.variables=coupon.variables)
+                                                      coupon.variables=coupons)
     
     x <- as.rds.data.frame(x, id = subject.id, 
                            recruiter.id=recruitor.id,
                           network.size = network_size,
                          population.size=c(NA,NA,NA), 
-                           max.coupons=3, notes=NULL)
+                           max.coupons=num_coupons, notes=NULL)
     
     x$seed <- get.seed.id(x)
     x$wave <- get.wave(x)
@@ -953,6 +933,7 @@ rds_adjust2 <- function(df, survey_id_c) {
     
     }, x = df2[13:19], y = names(df2[13:19])) %>%
       bind_rows() 
+  }
   }
 }
 
@@ -1164,4 +1145,83 @@ rds_adjust_partnerage <- function(df, survey_id_c, variable_recode) {
     
   }}
 
-    
+
+# rds_adjust_hiv_by_age <- function(df, survey_id_c, variable_recode) {
+#   
+#   rds_survs <- variable_recode %>% 
+#     filter(variable  == "coupon1")
+#   
+#   if(survey_id_c %in% rds_survs$survey_id) {
+#     
+#     message(survey_id_c)
+#     
+#     surv_type <- str_sub(survey_id_c, 8, -5)
+#     
+#     if ("coupon1" %in% colnames(df) & "network_size" %in% colnames(df) & "age" %in% colnames(df) &  "hiv" %in% colnames(df) ) {
+#       
+#       df <- df %>% 
+#         # mutate(duration = inject_dur) %>% 
+#         filter(!age < 0,
+#                !age > 80,
+#                hiv %in% c(0,1)) %>% 
+#         mutate(age1 = factor(age)) %>% 
+#         filter(!is.na(coupon1),
+#                coupon1 != "")
+#       
+#       median_network_size <- median(df$network_size[!is.na(df$network_size) & df$network_size != 0])
+#       
+#       df$network_size[is.na(df$network_size) | df$network_size == 0] <- median_network_size
+#       
+#       nboot <- 30
+#       
+#       vars <- intersect(c("hiv", "age1"), colnames(df))
+#       # vars <- "age1"
+#       # vars <- "age1"
+#       coupons <- colnames(df)[grep("^coupon", colnames(df))]
+#       
+#       num_coupons <- length(coupons)
+#       
+#       df$recruiter.id <- rid.from.coupons(df, subject.id='subject_id', 
+#                                           subject.coupon='own_coupon', 
+#                                           # coupon.variables=c("coupon1","coupon2","coupon3"),
+#                                           coupon.variables = coupons)
+#       
+#       df <- as.rds.data.frame(df, id='subject_id', 
+#                               recruiter.id='recruiter.id',
+#                               network.size='network_size',
+#                               population.size=c(NA,NA,NA), 
+#                               # max.coupons=3, 
+#                               max.coupons = num_coupons,
+#                               notes=NULL)
+#       
+#       df$seed <- get.seed.id(df)
+#       df$wave <- get.wave(df)
+#       
+#       
+#       df <- lapply(vars, function(x) {
+#         
+#         freq <- RDS.bootstrap.intervals(df, outcome.variable="hiv",
+#                                         weight.type="RDS-II", uncertainty="Salganik", 
+#                                         confidence.level=0.95, 
+#                                         number.of.bootstrap.samples=nboot)
+#         
+#         cat <- length(freq$estimate)
+#         
+#         df <- data.frame(matrix(freq$interval, nrow = cat))
+#         colnames(df) <- c("estimate", "lower", "upper", "des_effect", "se", "n")
+#         
+#         df$category <- attr(freq$estimate, "names")
+#         
+#         df$var <- x
+#         
+#         df
+#       }) %>%
+#         bind_rows() %>% 
+#         mutate(survey_id = survey_id_c)
+#       
+#     } else {
+#       NULL
+#     }
+#     
+#   }}
+#     
