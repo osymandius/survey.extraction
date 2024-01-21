@@ -122,7 +122,136 @@ new_recode_survey_variables <- function(df, survey_id_c, value_recode) {
     select(survey_id, everything())
   
     
+}
+
+
+# Cleaning data! 
+cleaning_fun2 <- function(df, survey_id_c){
+  
+  message(survey_id_c)
+  
+  
+  if ("age" %in% colnames(df)){
+    df <- df %>% 
+      mutate(age = ifelse(age <80, age, 999),
+             age_changed = ifelse(age == 999, 1, 0),
+             age = ifelse(age == 999, NA_integer_, age)) %>% 
+      type.convert(as.is = T)
+    
+    if ("duration_yr" %in% colnames(df)){
+      df <- df %>% 
+        mutate(duration_yr = ifelse(duration_yr < 80, duration_yr, 999),
+               duration_yr = ifelse(duration_yr > age - 10, 999, duration_yr),
+               duration_yr_changed = ifelse(duration_yr == 999, 1, 0),
+               duration_yr = ifelse(duration_yr == 999, NA_integer_, duration_yr)
+        )
+    }
+    else{
+      df <- df
+    }
+    
+    if ("age_fs_paid" %in% colnames(df)){
+      df <- df %>% 
+        mutate(age_fs_paid = ifelse(age_fs_paid < 80, age_fs_paid, 999),
+               age_fs_paid = ifelse(age_fs_paid < 10, 999, age_fs_paid),
+               age_fs_paid_changed = ifelse(age_fs_paid == 999, 1, 0),
+               age_fs_paid = ifelse(age_fs_paid == 999, NA_integer_, age_fs_paid)
+        )
+    }
+    else{
+      df <- df
+    }
+    
+    if ("age_fs_paidorgift" %in% colnames(df)){
+      df <- df %>% 
+        mutate(age_fs_paidorgift = ifelse(age_fs_paidorgift < 80, age_fs_paidorgift, 999),
+               age_fs_paidorgift = ifelse(age_fs_paidorgift < 10, 999, age_fs_paidorgift),
+               age_fs_paidorgift_changed = ifelse(age_fs_paidorgift == 999, 1, 0),
+               age_fs_paidorgift = ifelse(age_fs_paidorgift == 999, NA_integer_, age_fs_paidorgift)
+        )
+    }
+    else{
+      df <- df
+    }
+    
+    if ("age_fs_paidfor" %in% colnames(df)){
+      df <- df %>% 
+        mutate(age_fs_paidfor = ifelse(age_fs_paidfor < 80, age_fs_paidfor, 999),
+               age_fs_paidfor = ifelse(age_fs_paidfor < 10, 999, age_fs_paidfor),
+               age_fs_paidfor_changed = ifelse(age_fs_paidfor == 999, 1, 0),
+               age_fs_paidfor = ifelse(age_fs_paidfor == 999, NA_integer_, age_fs_paidfor)
+        )
+    }
+    else{
+      df <- df
+    }
+    
+    
+    if ("age_startsw" %in% colnames(df)){
+      df <- df %>% 
+        mutate(age_startsw = ifelse(age_startsw < 80, age_startsw, 999),
+               age_startsw = ifelse(age_startsw < 10, 999, age_startsw),
+               age_startsw_changed = ifelse(age_startsw == 999, 1, 0),
+               age_startsw = ifelse(age_startsw == 999, NA_integer_, age_startsw)
+        )
+    }
+    else{
+      df <- df
+    }
+    
+    
+    if ("age_fs_man" %in% colnames(df)){
+      df <- df %>% 
+        mutate(age_fs_man = ifelse(age_fs_man < 80, age_fs_man, 999),
+               age_fs_man = ifelse(age_fs_man < 10, 999, age_fs_man),
+               age_fs_man_changed = ifelse(age_fs_man == 999, 1, 0),
+               age_fs_man = ifelse(age_fs_man == 999, NA_integer_, age_fs_man)
+        )
+    } else{
+      df <- df
+    }
+    
+    
+    if ("age_fs_man_anal" %in% colnames(df)){
+      df <- df %>% 
+        mutate(age_fs_man_anal = ifelse(age_fs_man_anal < 80, age_fs_man_anal, 999),
+               age_fs_man_anal = ifelse(age_fs_man_anal < 10, 999, age_fs_man_anal),
+               age_fs_man_anal_changed = ifelse(age_fs_man_anal == 999, 1, 0),
+               age_fs_man_anal = ifelse(age_fs_man_anal == 999, NA_integer_, age_fs_man_anal)
+        )
+    } else{
+      df <- df
+    }
+    
+    if ("age_inject" %in% colnames(df)){
+      df <- df %>% 
+        mutate(age_inject = ifelse(age_inject < 80, age_inject, 999),
+               age_inject = ifelse(age_inject < 10, 999, age_inject),
+               age_inject_changed = ifelse(age_inject == 999, 1, 0),
+               age_inject = ifelse(age_inject == 999, NA_integer_, age_inject)
+        )
+    } else{
+      df <- df
+    }
+    
+    if ("inject_yr" %in% colnames(df)){
+      df <- df %>% 
+        mutate(inject_yr = ifelse(inject_yr < 80, inject_yr, 999),
+               inject_yr = ifelse(inject_yr > age - 10, 999, inject_yr),
+               inject_yr_changed = ifelse(inject_yr == 999, 1, 0),
+               inject_yr = ifelse(inject_yr == 999, NA_integer_, inject_yr)
+        )
+    }
+    else{
+      df <- df
+    }
+    
+  } else {
+    df <- df
   }
+  
+  
+}
 
 
 

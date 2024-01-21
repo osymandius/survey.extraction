@@ -97,7 +97,7 @@ variable_recode <- recoding_sheet %>%
   separate(survey_id2, c(NA, "file_type")) %>% 
   distinct() %>%
   mutate(analysis = "kp") %>% 
-  filter(variable %in% c( "network_size", "coupon1", "coupon2", "coupon3", "coupon4", "coupon5", "coupon6", "coupon7", "coupon8", "own_coupon", "age", "inject_yr", "network_size", "age_fs_paid", "age_fs_paidfor", "age_fs_paidorgift", "age_inject", "age_startsw", "age_startsw_cat", "duration_yr", "inject_dur" , "sex", "age_inject", "age_fs_paidorgift", "age_fs_man_anal", "age_fs_man" , "age_fs_woman", "age_fs_vag", "hiv")) %>% ### removing residence is to get round the character/integer binding row problem later. A bridge to cross when we start looking at spatial issues
+  filter(variable %in% c( "network_size", "coupon1", "coupon2", "coupon3", "coupon4", "coupon5", "coupon6", "coupon7", "coupon8", "own_coupon", "age", "inject_yr", "network_size", "age_fs_paid", "age_fs_paidfor", "age_fs_paidorgift", "age_inject", "age_startsw", "age_startsw_cat", "duration_yr", "inject_dur" , "sex", "age_fs_man_anal", "age_fs_man" , "age_fs_woman", "age_fs_vag", "hiv")) %>% ### removing residence is to get round the character/integer binding row problem later. A bridge to cross when we start looking at spatial issues
   rename(var_raw = var_label_raw) 
 
 ######### This is for age and HIV status
@@ -112,7 +112,17 @@ variable_recode <- recoding_sheet %>%
   filter(variable %in% c( "network_size", "coupon1", "coupon2", "coupon3", "coupon4", "coupon5", "coupon6", "coupon7", "coupon8", "own_coupon", "age", "hiv", "survey_city")) %>% ### removing residence is to get round the character/integer binding row problem later. A bridge to cross when we start looking at spatial issues
   rename(var_raw = var_label_raw) 
 
+######### This is for age and durataion
 
+variable_recode <- recoding_sheet %>% 
+  select(survey_id, variable, var_raw, study_type) %>% 
+  rename(var_label_raw = var_raw) %>% 
+  mutate(survey_id2 = survey_id) %>% 
+  separate(survey_id2, c(NA, "file_type")) %>% 
+  distinct() %>%
+  mutate(analysis = "kp") %>% 
+  filter(variable %in% c( "network_size", "coupon1", "coupon2", "coupon3", "coupon4", "coupon5", "coupon6", "coupon7", "coupon8", "own_coupon", "age", "duration_yr", "survey_city", "age_fs_paid", "age_startsw", "age_fs_paidorgift", "age_fs_man", "age_fs_man_anal", "age_inject", "inject_yr", "age_fs_paidfor")) %>% ### removing residence is to get round the character/integer binding row problem later. A bridge to cross when we start looking at spatial issues
+  rename(var_raw = var_label_raw) 
 
 
 
@@ -184,6 +194,27 @@ all_recoded <- all_extracted %>%
       list(value_recode))
 
 
+# To clean up our data! 
+newlyclean <- all_recoded %>% 
+  Map(cleaning_fun2,
+      df = .,
+      survey_id_c = names(.))
+
+
+newlyclean <- lapply(newlyclean, function(df) {
+  df %>%
+    mutate(across(starts_with("coupon"), ~as.integer(extract_numeric(.))),
+           across(starts_with("age_fs"), ~as.integer(extract_numeric(.))),
+           across(starts_with("sex"), ~as.integer(extract_numeric(.))),
+           across(starts_with("hiv"), ~as.integer(extract_numeric(.))),
+           across(starts_with("age"), ~as.integer(extract_numeric(.)))) %>%
+    mutate(own_coupon = if ("own_coupon" %in% names(.))
+      as.integer(extract_numeric(own_coupon)),
+    ) 
+})
+
+newlyclean <- newlyclean %>% 
+  bind_rows()
 
 
 
