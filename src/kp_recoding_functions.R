@@ -3,7 +3,7 @@ new_extract_fun <- function(df, survey_id_c, variable_recode) {
   message(survey_id_c)
   
   if(!survey_id_c %in% variable_recode$survey_id) {
-    warning("No survey found in recode sheet")
+    warning(survey_id_c, ": No survey found in recode sheet")
     return(NULL)
   }
   

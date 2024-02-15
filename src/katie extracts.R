@@ -33,9 +33,41 @@ agecounts <- all_recoded_basic %>%
 hivbyage <- all_recoded_basic %>% 
   filter(!is.na(hiv)) %>% 
   group_by(survey_id, age) %>% 
-    summarise(prev = mean(hiv))
+  mutate(age_denominator = n()) %>%
+  ungroup() %>% 
+  moz.utils::separate_survey_id() %>% 
+  select(-year) %>% 
+  group_by(survey_id, age, kp, age_denominator) %>% 
+  summarise(prev = mean(hiv))  %>% 
+  ungroup() %>% 
+  filter(!survey_id == "KEN2021ACA_FSW")
 
 saveRDS(agecounts, "C:/Users/rla121/Downloads/agecount.rds")
 saveRDS(hivbyage, "C:/Users/rla121/Downloads/hivbyage.rds")
 
+katie_age <- readRDS("C:/Users/rla121/Downloads/agecount.rds") %>% 
+  moz.utils::separate_survey_id() %>% 
+  group_by(survey_id) %>% 
+  mutate(total_sample = sum(n)) %>% 
+  select(-iso3, -year)
 
+saveRDS(new_katie_age, "C:/Users/rla121/Downloads/agecount.rds")
+
+new_katie_age <- readRDS("C:/Users/rla121/Downloads/hivbyage.rds") %>% 
+  filter(!survey_id == "KEN2021ACA_FSW")
+
+hivbyage %>% 
+ggplot() +
+  geom_line(aes(x = age, y = prev, color = survey_id), show.legend = F) + 
+  facet_wrap(~survey_id)
+
+all_recoded_basic %>% 
+  filter(!is.na(hiv)) %>% 
+  group_by(survey_id, age) %>% 
+  mutate(age_denominator = n()) %>%
+  ungroup() %>% 
+  moz.utils::separate_survey_id() %>% 
+  select(-year) %>% 
+  group_by(survey_id, age, kp, age_denominator) %>% 
+  summarise(prev = mean(hiv))  %>% 
+  ungroup()

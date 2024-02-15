@@ -10,18 +10,8 @@ library(stringdist)
 library(multi.utils)
 library(moz.utils)
 
-# source("C:/Users/rla121/OneDrive - Imperial College London/Documents/GitHub/survey-extraction/src/kp_recoding_functions_21_02.R")
-# setwd("C:/Users/rla121/OneDrive - Imperial College London/Documents/GitHub/survey-extraction")
 source("src/kp_recoding_functions_21_02.R")
-# ssa_iso3 <- c("BDI", "BEN", "BFA", "CIV", "CMR", "COD", "COG", "GMB", "KEN", "LSO", "MLI", "MOZ", "MWI", "NGA", "SLE", "SWZ", "TCD", "TGO", "ZWE", "AGO", "ETH", "GAB", "GHA", "GIN", "LBR", "NAM", "NER", "RWA", "SEN", "TZA", "UGA", "ZMB")
 ssa_iso3 <- moz.utils::ssa_iso3()
-
-### READ IN THE age_dat.csv (in survey-extraction/data) here and feel free to then hop on down to line 527 #### 
-# age_dat2 <- read_csv("data/age_dat.csv")
-# age_dat2 <- read_csv("~/Downloads/age_dat.csv")
-
-
-
 
 
 ### Recoding vars / values
@@ -75,61 +65,12 @@ ssa_iso3 <- moz.utils::ssa_iso3()
 
 recoding_sheet <-  read_csv("data/recoding_sheet.csv")
 
-# variable_recode <- recoding_sheet %>% 
-#   select(survey_id, variable, var_raw, study_type) %>% 
-#   rename(var_label_raw = var_raw) %>% 
-#   mutate(survey_id2 = survey_id) %>% 
-#   separate(survey_id2, c(NA, "file_type")) %>% 
-#   distinct() %>%
-#   mutate(analysis = "kp") %>% 
-#   filter(!variable == "cdm_location",
-#          !variable == "subject_id",
-#          !variable == c("residence", "hivtest_whenlast", "when_positive")) %>% ### removing residence is to get round the character/integer binding row problem later. A bridge to cross when we start looking at spatial issues
-#   rename(var_raw = var_label_raw) 
 
+## Age and duration variables
+# c( "network_size", "coupon1", "coupon2", "coupon3", "coupon4", "coupon5", "coupon6", "coupon7", "coupon8", "own_coupon", "age", "inject_yr", "network_size", "age_fs_paid", "age_fs_paidfor", "age_fs_paidorgift", "age_inject", "age_startsw", "age_startsw_cat", "duration_yr", "inject_dur" , "sex", "age_fs_man_anal", "age_fs_man" , "age_fs_woman", "age_fs_vag", "hiv"))
 
-#### This is for age and duration ####
-
-variable_recode <- recoding_sheet %>% 
-  select(survey_id, variable, var_raw, study_type) %>% 
-  rename(var_label_raw = var_raw) %>% 
-  mutate(survey_id2 = survey_id) %>% 
-  separate(survey_id2, c(NA, "file_type")) %>% 
-  distinct() %>%
-  mutate(analysis = "kp") %>% 
-  filter(variable %in% c( "network_size", "coupon1", "coupon2", "coupon3", "coupon4", "coupon5", "coupon6", "coupon7", "coupon8", "own_coupon", "age", "inject_yr", "network_size", "age_fs_paid", "age_fs_paidfor", "age_fs_paidorgift", "age_inject", "age_startsw", "age_startsw_cat", "duration_yr", "inject_dur" , "sex", "age_inject", "age_fs_paidorgift", "age_fs_man_anal", "age_fs_man" , "age_fs_woman", "age_fs_vag", "hiv")) %>% ### removing residence is to get round the character/integer binding row problem later. A bridge to cross when we start looking at spatial issues
-  rename(var_raw = var_label_raw) 
-
-######### This is for age and HIV status
-
-variable_recode <- recoding_sheet %>% 
-  select(survey_id, variable, var_raw, study_type) %>% 
-  rename(var_label_raw = var_raw) %>% 
-  mutate(survey_id2 = survey_id) %>% 
-  separate(survey_id2, c(NA, "file_type")) %>% 
-  distinct() %>%
-  mutate(analysis = "kp") %>% 
-  filter(variable %in% c( "network_size", "coupon1", "coupon2", "coupon3", "coupon4", "coupon5", "coupon6", "coupon7", "coupon8", "own_coupon", "age", "hiv")) %>% ### removing residence is to get round the character/integer binding row problem later. A bridge to cross when we start looking at spatial issues
-  rename(var_raw = var_label_raw) 
-
-
-
-
-
-######### This is for old MSM ####
-
-# variable_recode <- recoding_sheet %>% 
-#   select(survey_id, variable, var_raw, study_type) %>% 
-#   rename(var_label_raw = var_raw) %>% 
-#   mutate(survey_id2 = survey_id) %>% 
-#   separate(survey_id2, c(NA, "file_type")) %>% 
-#   distinct() %>%
-#   mutate(analysis = "kp") %>% 
-#   filter(variable %in% c( "network_size", "coupon1", "coupon2", "coupon3", "coupon4", "coupon5", "coupon6", "coupon7", "coupon8", "own_coupon", "age", "age_cat", "hiv", "age_2ndlastpartner", "age_3rdlastpartner", "age_4thlastpartner", "age_5thlastpartner", "age_lastpartner", "client_age", "client_agediff", "partner1_age", "partner2_age", "partner3_age", "partner4_age", "partner5_age", "sw_age", "sw_agediff", "partners_male_Y010_014", "partners_male_Y015_019", "partners_male_Y020_024", "partners_male_Y025_029", "partners_male_Y030_034", "partners_male_Y030_39", "partners_male_Y040_044", "partners_male_Y045_049", "partners_male_Y040_049", "partners_male_Y050up")) %>% ### removing residence is to get round the character/integer binding row problem later. A bridge to cross when we start looking at spatial issues
-#   rename(var_raw = var_label_raw) 
-
-
-
+## Older MSM
+# c( "network_size", "coupon1", "coupon2", "coupon3", "coupon4", "coupon5", "coupon6", "coupon7", "coupon8", "own_coupon", "age", "age_cat", "hiv", "age_2ndlastpartner", "age_3rdlastpartner", "age_4thlastpartner", "age_5thlastpartner", "age_lastpartner", "client_age", "client_agediff", "partner1_age", "partner2_age", "partner3_age", "partner4_age", "partner5_age", "sw_age", "sw_agediff", "partners_male_Y010_014", "partners_male_Y015_019", "partners_male_Y020_024", "partners_male_Y025_029", "partners_male_Y030_034", "partners_male_Y030_39", "partners_male_Y040_044", "partners_male_Y045_049", "partners_male_Y040_049", "partners_male_Y050up"))
 
 
 value_recode <- recoding_sheet %>% 
@@ -137,9 +78,8 @@ value_recode <- recoding_sheet %>%
   filter(!is.na(val_raw))
 
 paths <- list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/KP/Individual level data/", recursive = TRUE, pattern = ".rds", full.names = TRUE) %>%
-  lapply(., grep, pattern= "agedata|durationdata|ACAPUBLIC|CFSW|PWUD|_TG|TGW|PLACE|NPP|MSW|code|Anne|v1|v2|cpt_fin|dbn_fin|jhb_fin|old|.rdsobj|TIPVAL|hsh_rdsat_format.csv", value = TRUE, invert = TRUE) %>%
+  lapply(., grep, pattern = "[A-Z]{3}[0-9]{4}[A-Z]{3,5}\\_(FSW|PWID|MSM|TGW|TG).rds", value= T) %>%
   unlist()
-
 
 combined_datasets <- lapply(paths, readRDS)
 
@@ -147,38 +87,57 @@ surv_ids <- str_split(paths, "/") %>%
   lapply(tail, 1) %>%
   unlist() 
 
-# surv_ids[surv_ids == "uga2021_fsw_bbs.rdsobj"] <- "UGA2021BBS_FSW.rds"
 surv_ids <- str_remove(surv_ids, ".rds")
+
 names(combined_datasets) <- surv_ids
 
-# combined_datasets <- combined_datasets[!names(combined_datasets) %in% c("NAM2019BBS_FSW", "NAM2019BBS_MSM", "SWZ2020BBS_FSW", 
-#                                                                         "CIV2020BBS_FSW", "MOZ2012BBS_FSW", "ZAF2013BBS_MSM", #This line is extract error
-#                                                                         )]
 
-# combined_datasets <- combined_datasets[!names(combined_datasets) %in% c("GHA2011BBS_CFSW", "Cape Town TIPVAL 30Jan18.rds", "Pretoria_TipVal_30Jan18.rds", "UGA2012BBS_PWUD.rds", "CIV1999ACA_CFSW.rds", "GHA2011BBS_CFSW.rds", "MWI2019BBS_CFSW.rds" )]
-
-
-all_extracted <- combined_datasets %>%
+all_extracted <- combined_datasets[!names(combined_datasets) %in% c("BEN2013BBS_MSM", "COG2017BBS_MSM", "GIN2022BBS_MSM", "LSO2019BBS_FSW", "MWI2020BBS_TG", "SLE2021BBS_TGW", ## These surveys have duplicated column errors and other issues
+                                                                    "NGA2020BBS_TG" #This survey isn't in the recode sheet
+                                                                    )] %>%
   Map(new_extract_fun,
       df = .,
       survey_id = names(.),
       list(variable_recode)
       )
 
-all_extracted <- compact(all_extracted)
 
 #all_extracted[["BEN2005BBS_FSW"]]
 
 #all_extracted <- all_extracted[!names(all_extracted) %in% c( "CIV2020BBS_MSM", "GHA2011BBS_FSW", "GHA2015BBS_FSW", "GHA2019BBS_FSW", "UGA2021BBS_MSM", "ZAF2014BBS_FSW" , "ZAF2017BBS_MSM", "ZAF2013BBS_MSM")] #"BEN2012ACA_FSW",
 #Two copies of UGA 2021 BBS FSW??
 
-all_recoded <- all_extracted %>%
+all_recoded <- all_extracted[!names(all_extracted) %in% c("BEN2008ACA_FSW", "COD2019BBS_MSM", "MWI2006BBS_FSW", "GHA2015BBS_FSW")] %>%
   Map(new_recode_survey_variables,
       df = .,
       survey_id = names(.),
       list(value_recode))
 
+## Fix please :)
+all_recoded$GIN2022BBS_FSW$age_fs_paid[all_recoded$GIN2022BBS_FSW$age_fs_paid == "Pas de réponse"] <- NA
+all_recoded$ZWE2022ACA_PWID$age_inject[all_recoded$ZWE2022ACA_PWID$age_inject == "don't know"] <- NA
 
+# To clean up our data! 
+newlyclean <- all_recoded %>% 
+  Map(cleaning_fun2,
+      df = .,
+      survey_id_c = names(.))
+
+
+newlyclean <- lapply(newlyclean, function(df) {
+  df %>%
+    mutate(across(starts_with("coupon"), ~as.integer(extract_numeric(.))),
+           across(starts_with("age_fs"), ~as.integer(extract_numeric(.))),
+           across(starts_with("sex"), ~as.integer(extract_numeric(.))),
+           across(starts_with("hiv"), ~as.integer(extract_numeric(.))),
+           across(starts_with("age"), ~as.integer(extract_numeric(.)))) %>%
+    mutate(own_coupon = if ("own_coupon" %in% names(.))
+      as.integer(extract_numeric(own_coupon)),
+    ) 
+})
+
+newlyclean <- newlyclean %>% 
+  bind_rows()
 
 
 
@@ -292,6 +251,115 @@ trial <- rds_adjust2(all_recoded2$BDI2021BBS_MSM, "BDI2021BBS_MSM", variable_rec
 
 debugonce(rds_adjust_partnerage)
 trial <- rds_adjust_partnerage(all_recoded2$NAM2019BBS_MSM, "NAM2019BBS_MSM", variable_recode)
+
+trial <- rds_adjust_age(all_recoded$ZMB2017BBS_FSW, "ZMB2017BBS_FSW", variable_recode)
+
+single_year_to_five_year <- function (df, fifteen_to_49 = TRUE) 
+{
+  df <- df %>% dplyr::mutate(age_group_label = cut(age, c(0, 
+                                                          seq(5, 85, 5) - 1), c(paste0(seq(0, 79, 5), "-", seq(5, 
+                                                                                                               80, 5) - 1), "80+"), include.lowest = TRUE)) %>% dplyr::left_join(naomi::get_age_groups() %>% 
+                                                                                                                                                                                   select(age_group, age_group_label)) %>% dplyr::select(-age_group_label)
+  if (fifteen_to_49) {
+    df %>% dplyr::filter(age %in% 15:49) %>% dplyr::select(-age)
+  }
+  else {
+    df %>% dplyr::select(-age)
+  }
+}
+
+
+
+data <- all_recoded$ZMB2017BBS_FSW %>% 
+  single_year_to_five_year() %>% 
+  mutate(new_age = case_when(age_group %in% c("Y015_019", "Y020_024") ~ "18-24",
+                             age_group %in% c("Y025_029") ~ "25-29",
+                             age_group %in% c("Y030_034") ~ "30-34",
+                             age_group %in% c("Y035_039", "Y040_044", "Y045_049") ~ "35+"),
+         city_age = paste0(survey_city, " ", new_age)) %>% 
+  select(survey_city, age_group, new_age, city_age, everything())
+
+debugonce(rds_adjust_cityage)
+trial <- rds_adjust_cityage(data, "ZMB2017BBS_FSW", variable_recode)
+
+
+rds_adjust_cityage <- function(df, survey_id_c, variable_recode) {
+  
+  rds_survs <- variable_recode %>% 
+    filter(variable  == "coupon1")
+  
+  if(survey_id_c %in% rds_survs$survey_id) {
+    
+    message(survey_id_c)
+    
+    surv_type <- str_sub(survey_id_c, 8, -5)
+    
+    if ("coupon1" %in% colnames(df) & "network_size" %in% colnames(df) & "city_age" %in% colnames(df) ) {
+      
+      df <- df %>% 
+        # mutate(duration = inject_dur) %>% 
+        # filter(!age < 0,
+        #        !age > 80) %>% 
+        mutate(age1 = factor(city_age)) %>% 
+        filter(!is.na(coupon2),
+               coupon2 != "")
+      
+      median_network_size <- median(df$network_size[!is.na(df$network_size) & df$network_size != 0])
+      
+      df$network_size[is.na(df$network_size) | df$network_size == 0] <- median_network_size
+      
+      nboot <- 30
+      
+      # vars <- intersect(c("hiv", "age_fs", "age1","hepb", "syphilis", "age_first_paid"), colnames(df))
+      # vars <- "age1"
+      vars <- "age1"
+      coupons <- colnames(df)[grep("^coupon", colnames(df))]
+      
+      num_coupons <- length(coupons)
+      
+      df$recruiter.id <- rid.from.coupons(df, subject.id='subject_id', 
+                                          subject.coupon='own_coupon', 
+                                          # coupon.variables=c("coupon1","coupon2","coupon3"),
+                                          coupon.variables = coupons)
+      
+      df <- as.rds.data.frame(df, id='subject_id', 
+                              recruiter.id='recruiter.id',
+                              network.size='network_size',
+                              population.size=c(NA,NA,NA), 
+                              # max.coupons=3, 
+                              max.coupons = num_coupons,
+                              notes=NULL)
+      
+      df$seed <- get.seed.id(df)
+      df$wave <- get.wave(df)
+      
+      
+      df <- lapply(vars, function(x) {
+        
+        freq <- RDS.bootstrap.intervals(df, outcome.variable=x,
+                                        weight.type="RDS-II", uncertainty="Salganik", 
+                                        confidence.level=0.95, 
+                                        number.of.bootstrap.samples=nboot)
+        
+        cat <- length(freq$estimate)
+        
+        df <- data.frame(matrix(freq$interval, nrow = cat))
+        colnames(df) <- c("estimate", "lower", "upper", "des_effect", "se", "n")
+        
+        df$category <- attr(freq$estimate, "names")
+        
+        df$var <- x
+        
+        df
+      }) %>%
+        bind_rows() %>% 
+        mutate(survey_id = survey_id_c)
+      
+    } else {
+      NULL
+    }
+    
+  }}
 
 
 
