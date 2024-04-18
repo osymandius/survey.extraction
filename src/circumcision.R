@@ -22,8 +22,6 @@ survey_has_circ <- dhs_surveys(surveyCharacteristicIds = 59) %>%
 #' Men's recode datasets
 mrd <- dhs_datasets(fileType = "MR", fileFormat = "FL")
 
-combined_datasets %>% filter(CountryName == "Mozambique")
-
 #' Get Individual recode datasets with circumcision characteristic and bind in MR datasets
 combined_datasets <- dhs_datasets(fileType = "IR", fileFormat = "FL") %>%
   filter(SurveyId %in% dhs_surveys(surveyCharacteristicId = 11)$SurveyId) %>%
@@ -31,7 +29,7 @@ combined_datasets <- dhs_datasets(fileType = "IR", fileFormat = "FL") %>%
   bind_rows(mrd
               # filter(SurveyId %in% survey_has_circ$SurveyId)
   ) %>%
-  filter(dhscc_to_iso3(DHS_CountryCode) %in% ssa_iso,
+  filter(dhscc_to_iso3(DHS_CountryCode) %in% ssa_iso3,
          as.integer(SurveyYear) > 1999) %>%
   mutate(survey_id = paste0(
     dhscc_to_iso3(DHS_CountryCode),
@@ -155,9 +153,9 @@ mics_file_type <- rep("mn", length(mics_dat)) %>% setNames(names(mics_dat))
 ### Extract and recode variables
 
 file_type <- c(
-  c("Individual Recode" = "ir", "Men's Recode" = "mr")[combined_datasets$FileType] %>% setNames(combined_datasets$survey_id)
-  # mics_file_type,
-  # phia_file_type
+  c("Individual Recode" = "ir", "Men's Recode" = "mr")[combined_datasets$FileType] %>% setNames(combined_datasets$survey_id),
+  mics_file_type,
+  phia_file_type
 )
 
 circ_extracted <- circ_raw %>%
@@ -180,7 +178,7 @@ circ_recoded <- circ_extracted  %>%
       analysis = "circ"
       )
 
-foo <- circ_recoded %>%
+out <- circ_recoded %>%
   lapply(function(x) {
     if(ncol(x) <6)
       NULL
@@ -203,7 +201,7 @@ foo <- circ_recoded %>%
 # dhs_survey_characteristics(surveyIds = dhs_surv_id) %>%
 #   filter(SurveyCharacteristicID == 59)
 
-saveRDS(foo, "~/Imperial College London/HIV Inference Group - WP - Documents/Circumcision coverage/raw/Survey extract/circ_recoded_dhs.rds")
+saveRDS(out, "~/Imperial College London/HIV Inference Group - WP - Documents/Circumcision coverage/raw/Survey extract/circ_recoded.rds")
 
 # int <- circ_recoded %>%
 #   bind_rows()
@@ -222,8 +220,8 @@ saveRDS(foo, "~/Imperial College London/HIV Inference Group - WP - Documents/Cir
 #   tibble::rownames_to_column(.)  %>%
 #   View()
 # 
-debugonce(extract_survey_vars)
-foo <- extract_survey_vars(circ_raw$SEN2005DHS, "SEN2005DHS", variable_recode, "mr", "circ")
+# debugonce(extract_survey_vars)
+# foo <- extract_survey_vars(circ_raw$SEN2005DHS, "SEN2005DHS", variable_recode, "mr", "circ")
 # 
 # debugonce(recode_survey_variables)
 # foo2 <- recode_survey_variables(circ_extracted$TZA2012AIS, "TZA2012AIS", value_recode, "mr", "circ")
