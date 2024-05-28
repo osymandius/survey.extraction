@@ -84,6 +84,49 @@ recoding_sheet <-  read_csv("data/recoding_sheet.csv")
 # "children", "children_under5", "children_alive", "children_dead", "children_young" [this is kids under 12]
 # "cdm_consistency", "cdm_last", "cdm_last_3events_client", "cdm_last_3events_nppp", "cdm_last_anal", "cdm_last_anal_c1", "cdm_last_anal_c2", "cdm_last_anal_c3", "cdm_last_anal_nc", "cdm_last_anal_npp1", "cdm_last_anal_npp2", "cdm_last_anal_rc", "cdm_last_client", "cdm_last_client1", "cdm_last_paid", "cdm_last_paid1", "cdm_last_sex", "cdm_last_vag_ltp", "cdm_last_vag_nc", "cdm_last_vag_rc", "cdm_lastclient1", "cdm_lastclient2", "cdm_lastclient2", "cdm_lastclient3", "cdm_lastnpp1", "cdm_lastnpp2", "cdm_often", "cdm_often_anal", "cdm_often_anal_client1", "cdm_often_anal_client2", "cdm_often_anal_client3", "cdm_often_anal_npp1", "cdm_often_anal_npp2", "cdm_often_c1_prop", "cdm_often_c2_prop", "cdm_often_c3_prop", "cdm_often_client_prop", "cdm_often_npp", "cdm_often_npp_prop", "cdm_often_npp1_prop", "cdm_often_npp2_prop", "cdm_often_vag"
 
+# Intersection work
+# Demographic variables
+"age", "sex", "gender", "tg","education", "marital", "children", "abroad", "religion", "pregnant", "away_places_yr", "away_abroad_yr", "away_othertown", "local_travel"    
+
+# Identity variables
+"sex_samegender_mnth", "sex_lastpartner", "sex_2ndlastpartner",  "sex_3rdlastpartner", "sex_5thlastpartner" , "sex_4thlastpartner", "partners_currentsex", "msm_only", "msm_andwomen" 
+
+# SW variables
+"workplace_street", "workplace", "swabroad" , "sw_locations", "swabroad_6mnths" , "swothercity_6mnths",  "transac", "primary_income_sw", "paidorgiftsex_man_lastmnth", "paidorgiftsex_man_3mnth", "paidorgiftsex_man_6mnth", "paidorgifted_by_man", "paidbywoman_6mnths", "paidbywoman_12mnths" , "paid_transac_sex_6mnths", "paid_sex_ever", "paid_sex_man_12mnths", "paid_sex_12mnths" , "paid_sex_6mnth", "giftsfromwoman", "drugs_for_sex", "drugs_for_sex_12mnth",  "age_startsw" , "age_startsw_cat", "paidby_lastpartnerman", "paidbyman_mnth_count","paidbyman_wk_count" 
+
+# MSM variables
+"sexabroad", "circ_status", "spouse_gender"
+
+# Drug variables
+"share_needleyr" , "share_needle6mnth" , "share_needle", "share_needle_norm", "share_needle_last", "share_needle_first_inj", "share_needle_hormones", "inject_yr", "inject_6mnths", "inject_ever", "inject_freq", "inject_dur", "noninject_lastmnth", "drug_lastmnth","noninject_6mnths","inject_hormones_yr", "share_needle_hormones_yr"
+
+# Partner variables
+"partners_np_wk", "partners_male_6mnths", "partners_6mnths", "partners_msw_6mnth", "partners_tsw_6mnths" ,"numregpart","partners_regular_6mnths", "casual_partners_6mnths", "numcasualpart_12mnth", "np_partners_wk" , "np_part_mnth", "np_partners_3mnth", "np_part_12mnths", "partners_npp_6mnths", "np_clients_6mnths" , "no_swpartners_yr" , "newclients_mnth", "male_partners_regular_currently", "male_partners_currently", "male_partners_mnth", "male_partners_lastmnth", "male_partners_6mnths", "male_partners_3mnths", "male_partners_12mnths" , "male_partners", "male_partners_lastwk", "female_partners_lastwk" ,"female_partners_12mnth", "female_clients_6mnths", "female_partners_6mnths", "partners_femalenpp_6mnths", "clients_yr", "clients_yesterday", "clients_mnth", "clients_lastwk", "clients_lastmnth", "clients_6mnths", "clients_3mnths", "allpartners_6mnths" , "allpartners_yr", "regclients_wk", "newclients_wk", "clients_trans_6mnths"  
+
+
+# Programme variables
+"programme_access", "anc_attended", "sw_program", "msm_program", "peer_educator", "hiv_activities"
+
+# Cdm use
+"cdm_lastpart", "cdm_lastnpp2", "cdm_lastnpp1", "cdm_lastclient3", "cdm_lastclient2", "cdm_lastclient1", "cdm_last_paid", "cdm_last_gifter", "cdm_last_main", "cdm_last_gift", "cdm_last_gifter", "cdm_last_funded", "cdm_last_female", "cdm_last_casual", "cdm_last_3events_nppp" , "cdm_last_anal", "cdm_last_3events_client", "cdm_last_reg_client", "cdm_last_new_client", "cdm_last_npp", "cdm_last_reg", "cdm_last_tsw" , "cdm_last_msw", "cdm_last_transclient", "cdm_last_femalenpp", "cdm_last_regclient"
+
+# We don't generally have cdm use at last ins/rec - we have cdm_often_insertive / cdm_often_receptive for two surveys presently
+# Abuse
+"verbal_abuse", "verbal_abuser", "sexual_abuse", "sexual_abuser", "rape", "prison_ever", "prison_12mnths", "arrested_msm", "minor_physical_abuse", "minor_phsyical_abuser" , "major_physical_abuser", "major_physical_abuse", "fgm", "abuse_client_6mnth", "beaten_client", "beaten_client_count_mth", "insulted_client", "rape_client_6mnth", "raped_ever", "raped_age", "raped_yr", "raped_police_yr", "rape_police_often", "rape_police_ever","rape_npp", "raped_firstsex", "raped_becausemsm", "beaten_npp_mnth","beaten_npp_ever" , "beaten_npp_count_mnth" , "police_threaten_sw", "police_abuse" , "healthc_stigma_fear", "hc_avoid", "hc_refused_msm", "stigmafear_sticentre", "stigmafear_healthcare"
+
+# Alcohol 
+"alcohol_wk_count"
+
+# HIV services
+"prep_ever", "prep_6mnths", "pep_ever", "pep_6mnths", "onart", "hivtest_whenlast", "hivtest_whenlastcat", "hivtest_whenlastcat2", "hivtest_12mnths", "sti_treat", "kp_hivcare"
+
+# Biomarkers
+"syphilis", "hiv", "hepb", "hepc", "gon", "chlam"
+
+# Ins rec
+"insertive_wk", "insertive_unpr_6mnths", "insertive_lastpart_6mnth", "insertive_6mnth", "ins_rec_pref", "insertive_12mnth", "ins_rec", "insertive_mnth", "receptive_mnth", "ins_rec_reg", "ins_rec_casual", "ins_rec_client", "ins_rec_main", "ins_rec_npp", "ins_rec_tgw", "ins_rec_tsw", "ins_rec_transclient"
+
+# ins_rec_casual + ins_rec_client + ins_rec_reg -_> all last time you had sex
 variable_recode <- recoding_sheet %>% 
   select(survey_id, variable, var_raw, study_type) %>% 
   mutate(survey_id2 = survey_id) %>% 
