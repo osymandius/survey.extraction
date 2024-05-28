@@ -10,6 +10,7 @@ library(stringdist)
 library(multi.utils)
 library(moz.utils)
 
+setwd("C:/Users/rla121/OneDrive - Imperial College London/Documents/GitHub/survey-extraction/")
 source("src/kp_recoding_functions_21_02.R")
 ssa_iso3 <- moz.utils::ssa_iso3()
 
@@ -67,17 +68,40 @@ recoding_sheet <-  read_csv("data/recoding_sheet.csv")
 
 
 ## Age and duration variables
-# c( "network_size", "coupon1", "coupon2", "coupon3", "coupon4", "coupon5", "coupon6", "coupon7", "coupon8", "own_coupon", "age", "inject_yr", "network_size", "age_fs_paid", "age_fs_paidfor", "age_fs_paidorgift", "age_inject", "age_startsw", "age_startsw_cat", "duration_yr", "inject_dur" , "sex", "age_fs_man_anal", "age_fs_man" , "age_fs_woman", "age_fs_vag", "hiv"))
+# c( "survey_city", "network_size", "coupon1", "coupon2", "coupon3", "coupon4", "coupon5", "coupon6", "coupon7", "coupon8", "own_coupon", "age", "inject_yr", "network_size", "age_fs_paid", "age_fs_paidfor", "age_fs_paidorgift", "age_inject", "age_startsw", "age_startsw_cat", "duration_yr", "inject_dur" , "sex", "age_fs_man_anal", "age_fs_man" , "age_fs_woman", "age_fs_vag", "hiv"))
 
 ## Older MSM
 # c( "network_size", "coupon1", "coupon2", "coupon3", "coupon4", "coupon5", "coupon6", "coupon7", "coupon8", "own_coupon", "age", "age_cat", "hiv", "age_2ndlastpartner", "age_3rdlastpartner", "age_4thlastpartner", "age_5thlastpartner", "age_lastpartner", "client_age", "client_agediff", "partner1_age", "partner2_age", "partner3_age", "partner4_age", "partner5_age", "sw_age", "sw_agediff", "partners_male_Y010_014", "partners_male_Y015_019", "partners_male_Y020_024", "partners_male_Y025_029", "partners_male_Y030_034", "partners_male_Y030_39", "partners_male_Y040_044", "partners_male_Y045_049", "partners_male_Y040_049", "partners_male_Y050up"))
 
+# Intersection 
+# c("age_inject", "inject_3mnths", "inject_6mnths", "inject_dur", "inject_ever", "inject_freq") 
+# c("age_startsw", "age_startsw_cat", "identifies_sw", "primary_income_sw", "sw", "age_fs_paid", "age_fs_paidfor", "paid_by_lastpartner", "paid_by_2ndlastpartner", "paid_by_3rdlastpartner", "paid_by_4thlastpart", "paid_by_5thlastpart", "paidbywoman_6mnths", "paidbywoman_12mnths", "paidorgifted_by_man", "paidorgiftsbywoman_12mnths", "paidorgiftsex_man_3mnth", "paidorgiftsex_man_6mnth", "paidorgiftsex_man_lastmnth", "drugs_for_sex", "female_clients_6mnths", "giftsfromwoman", "duration_yr", "duration_mnth", "clients_yr", "clients_pw", "clients_6mnths", "clients_lastwk", "clients_lastmnth")
+
+# Julia
+# Time engaging in sex work
+# "age_fs_paid", "age_fs_paidfor", "age_fs_paidorgift", "age_inject", "age_startsw", "age_startsw_cat", "duration_yr", "age"
+# age_fs, age_fs_vag, age_fs_man, age_fs_anal, age_fs_man_anal
+# "children", "children_under5", "children_alive", "children_dead", "children_young" [this is kids under 12]
+# "cdm_consistency", "cdm_last", "cdm_last_3events_client", "cdm_last_3events_nppp", "cdm_last_anal", "cdm_last_anal_c1", "cdm_last_anal_c2", "cdm_last_anal_c3", "cdm_last_anal_nc", "cdm_last_anal_npp1", "cdm_last_anal_npp2", "cdm_last_anal_rc", "cdm_last_client", "cdm_last_client1", "cdm_last_paid", "cdm_last_paid1", "cdm_last_sex", "cdm_last_vag_ltp", "cdm_last_vag_nc", "cdm_last_vag_rc", "cdm_lastclient1", "cdm_lastclient2", "cdm_lastclient2", "cdm_lastclient3", "cdm_lastnpp1", "cdm_lastnpp2", "cdm_often", "cdm_often_anal", "cdm_often_anal_client1", "cdm_often_anal_client2", "cdm_often_anal_client3", "cdm_often_anal_npp1", "cdm_often_anal_npp2", "cdm_often_c1_prop", "cdm_often_c2_prop", "cdm_often_c3_prop", "cdm_often_client_prop", "cdm_often_npp", "cdm_often_npp_prop", "cdm_often_npp1_prop", "cdm_often_npp2_prop", "cdm_often_vag"
+
+variable_recode <- recoding_sheet %>% 
+  select(survey_id, variable, var_raw, study_type) %>% 
+  mutate(survey_id2 = survey_id) %>% 
+  separate(survey_id2, c(NA, "file_type")) %>% 
+  distinct() %>%
+  mutate(analysis = "kp") %>% 
+  filter(variable %in% c("survey_city", "network_size", "coupon1", "coupon2", "coupon3", "coupon4", "coupon5", "coupon6", "coupon7", "coupon8", "own_coupon", "age", "hiv")) 
 
 value_recode <- recoding_sheet %>% 
   rename(value = val_recode) %>% 
-  filter(!is.na(val_raw))
+  filter(!is.na(val_raw)) 
+  
 
-paths <- list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/KP/Individual level data/", recursive = TRUE, pattern = ".rds", full.names = TRUE) %>%
+# paths <- list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/KP/Individual level data/", recursive = TRUE, pattern = ".rds", full.names = TRUE) %>%
+#   lapply(., grep, pattern = "[A-Z]{3}[0-9]{4}[A-Z]{3,5}\\_(FSW|PWID|MSM|TGW|TG).rds", value= T) %>%
+#   unlist()
+
+paths <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/KP/Individual level data/", recursive = TRUE, pattern = ".rds", full.names = TRUE) %>%
   lapply(., grep, pattern = "[A-Z]{3}[0-9]{4}[A-Z]{3,5}\\_(FSW|PWID|MSM|TGW|TG).rds", value= T) %>%
   unlist()
 
@@ -92,7 +116,7 @@ surv_ids <- str_remove(surv_ids, ".rds")
 names(combined_datasets) <- surv_ids
 
 
-all_extracted <- combined_datasets[!names(combined_datasets) %in% c("BEN2013BBS_MSM", "COG2017BBS_MSM", "GIN2022BBS_MSM", "LSO2019BBS_FSW", "MWI2020BBS_TG", "SLE2021BBS_TGW", ## These surveys have duplicated column errors and other issues
+all_extracted <- combined_datasets[!names(combined_datasets) %in% c("BEN2013BBS_MSM", "COG2017BBS_MSM", "GIN2022BBS_MSM"  , "MWI2020BBS_TG", "SLE2021BBS_TGW", ## These surveys have duplicated column errors and other issues, "LSO2019BBS_FSW"
                                                                     "NGA2020BBS_TG" #This survey isn't in the recode sheet
                                                                     )] %>%
   Map(new_extract_fun,
@@ -101,13 +125,16 @@ all_extracted <- combined_datasets[!names(combined_datasets) %in% c("BEN2013BBS_
       list(variable_recode)
       )
 
+# debugonce(new_extract_fun)
+# new_extract_fun(all_extracted$BDI2017ACA_PWID, "BDI2017ACA_PWID", variable_recode)
 
 #all_extracted[["BEN2005BBS_FSW"]]
 
 #all_extracted <- all_extracted[!names(all_extracted) %in% c( "CIV2020BBS_MSM", "GHA2011BBS_FSW", "GHA2015BBS_FSW", "GHA2019BBS_FSW", "UGA2021BBS_MSM", "ZAF2014BBS_FSW" , "ZAF2017BBS_MSM", "ZAF2013BBS_MSM")] #"BEN2012ACA_FSW",
 #Two copies of UGA 2021 BBS FSW??
+all_extracted <- compact(all_extracted)
 
-all_recoded <- all_extracted[!names(all_extracted) %in% c("BEN2008ACA_FSW", "COD2019BBS_MSM", "MWI2006BBS_FSW", "GHA2015BBS_FSW")] %>%
+all_recoded <- all_extracted[!names(all_extracted) %in% c("MWI2006BBS_FSW", "GIN2022BBS_FSW")]  %>% #[!names(all_extracted) %in% c("BEN2008ACA_FSW", "COD2019BBS_MSM", "MWI2006BBS_FSW", "GHA2015BBS_FSW")] 
   Map(new_recode_survey_variables,
       df = .,
       survey_id = names(.),
@@ -127,14 +154,20 @@ newlyclean <- all_recoded %>%
 newlyclean <- lapply(newlyclean, function(df) {
   df %>%
     mutate(across(starts_with("coupon"), ~as.integer(extract_numeric(.))),
+           across(starts_with("own"), ~as.integer(extract_numeric(.))),
            across(starts_with("age_fs"), ~as.integer(extract_numeric(.))),
            across(starts_with("sex"), ~as.integer(extract_numeric(.))),
            across(starts_with("hiv"), ~as.integer(extract_numeric(.))),
-           across(starts_with("age"), ~as.integer(extract_numeric(.)))) %>%
-    mutate(own_coupon = if ("own_coupon" %in% names(.))
-      as.integer(extract_numeric(own_coupon)),
-    ) 
+           across(starts_with("age"), ~as.integer(extract_numeric(.))),
+           across(starts_with("age"), ~as.integer(extract_numeric(.))),
+           across(starts_with("inject"), ~as.integer(extract_numeric(.))),
+           across(starts_with("primary"), ~as.integer(extract_numeric(.))),
+           across(starts_with("cdm"), ~as.integer(extract_numeric(.)))) 
 })
+  # %>%
+    # select(own_coupon = if ("own_coupon" %in% names(.))
+    #   as.integer(extract_numeric(own_coupon)),
+
 
 newlyclean <- newlyclean %>% 
   bind_rows()
