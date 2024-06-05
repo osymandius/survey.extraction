@@ -64,9 +64,9 @@ ssa_iso3 <- moz.utils::ssa_iso3()
 # paths <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", recursive = TRUE, pattern = ".rds", full.names = TRUE) %>%
 
 
-recoding_sheet <-  read_csv("data/recoding_sheet.csv")
+recoding_sheet <-  read_csv("data/recoding_sheet.csv", locale = locale(encoding = "ISO-8859-1"))
 
-
+#######################
 ## Age and duration variables
 # c( "survey_city", "network_size", "coupon1", "coupon2", "coupon3", "coupon4", "coupon5", "coupon6", "coupon7", "coupon8", "own_coupon", "age", "inject_yr", "network_size", "age_fs_paid", "age_fs_paidfor", "age_fs_paidorgift", "age_inject", "age_startsw", "age_startsw_cat", "duration_yr", "inject_dur" , "sex", "age_fs_man_anal", "age_fs_man" , "age_fs_woman", "age_fs_vag", "hiv"))
 
@@ -86,54 +86,57 @@ recoding_sheet <-  read_csv("data/recoding_sheet.csv")
 
 # Intersection work
 # Demographic variables
-"age", "sex", "gender", "tg","education", "marital", "children", "abroad", "religion", "pregnant", "away_places_yr", "away_abroad_yr", "away_othertown", "local_travel"    
+demvars <- c("age", "sex", "gender", "tg","education", "marital", "children", "abroad", "religion", "pregnant", "away_places_yr", "away_abroad_yr", "away_othertown", "local_travel")    
 
 # Identity variables
-"sex_samegender_mnth", "sex_lastpartner", "sex_2ndlastpartner",  "sex_3rdlastpartner", "sex_5thlastpartner" , "sex_4thlastpartner", "partners_currentsex", "msm_only", "msm_andwomen" 
+identityvars <- c("sex_samegender_mnth", "sex_lastpartner", "sex_2ndlastpartner",  "sex_3rdlastpartner", "sex_5thlastpartner" , "sex_4thlastpartner", "partners_currentsex", "msm_only", "msm_andwomen")
 
 # SW variables
-"workplace_street", "workplace", "swabroad" , "sw_locations", "swabroad_6mnths" , "swothercity_6mnths",  "transac", "primary_income_sw", "paidorgiftsex_man_lastmnth", "paidorgiftsex_man_3mnth", "paidorgiftsex_man_6mnth", "paidorgifted_by_man", "paidbywoman_6mnths", "paidbywoman_12mnths" , "paid_transac_sex_6mnths", "paid_sex_ever", "paid_sex_man_12mnths", "paid_sex_12mnths" , "paid_sex_6mnth", "giftsfromwoman", "drugs_for_sex", "drugs_for_sex_12mnth",  "age_startsw" , "age_startsw_cat", "paidby_lastpartnerman", "paidbyman_mnth_count","paidbyman_wk_count" 
+swvars <- c("workplace_street", "workplace", "swabroad" , "sw_locations", "swabroad_6mnths" , "swothercity_6mnths",  "transac", "primary_income_sw", "paidorgiftsex_man_lastmnth", "paidorgiftsex_man_3mnth", "paidorgiftsex_man_6mnth", "paidorgifted_by_man", "paidbywoman_6mnths", "paidbywoman_12mnths" , "paid_transac_sex_6mnths", "paid_sex_ever", "paid_sex_man_12mnths", "paid_sex_12mnths" , "paid_sex_6mnth", "giftsfromwoman", "drugs_for_sex", "drugs_for_sex_12mnth",  "age_startsw" , "age_startsw_cat", "paidby_lastpartnerman", "paidbyman_mnth_count","paidbyman_wk_count") 
 
 # MSM variables
-"sexabroad", "circ_status", "spouse_gender"
+msmvars <- c("sexabroad", "circ_status", "spouse_gender")
 
 # Drug variables
-"share_needleyr" , "share_needle6mnth" , "share_needle", "share_needle_norm", "share_needle_last", "share_needle_first_inj", "share_needle_hormones", "inject_yr", "inject_6mnths", "inject_ever", "inject_freq", "inject_dur", "noninject_lastmnth", "drug_lastmnth","noninject_6mnths","inject_hormones_yr", "share_needle_hormones_yr"
+drugvars <- c("share_needleyr" , "share_needle6mnth" , "share_needle", "share_needle_norm", "share_needle_last", "share_needle_first_inj", "share_needle_hormones", "inject_yr", "inject_6mnths", "inject_ever", "inject_freq", "inject_dur", "noninject_lastmnth", "drug_lastmnth","noninject_6mnths","inject_hormones_yr", "share_needle_hormones_yr")
 
 # Partner variables
-"partners_np_wk", "partners_male_6mnths", "partners_6mnths", "partners_msw_6mnth", "partners_tsw_6mnths" ,"numregpart","partners_regular_6mnths", "casual_partners_6mnths", "numcasualpart_12mnth", "np_partners_wk" , "np_part_mnth", "np_partners_3mnth", "np_part_12mnths", "partners_npp_6mnths", "np_clients_6mnths" , "no_swpartners_yr" , "newclients_mnth", "male_partners_regular_currently", "male_partners_currently", "male_partners_mnth", "male_partners_lastmnth", "male_partners_6mnths", "male_partners_3mnths", "male_partners_12mnths" , "male_partners", "male_partners_lastwk", "female_partners_lastwk" ,"female_partners_12mnth", "female_clients_6mnths", "female_partners_6mnths", "partners_femalenpp_6mnths", "clients_yr", "clients_yesterday", "clients_mnth", "clients_lastwk", "clients_lastmnth", "clients_6mnths", "clients_3mnths", "allpartners_6mnths" , "allpartners_yr", "regclients_wk", "newclients_wk", "clients_trans_6mnths"  
+partnervars <- c("partners_np_wk", "partners_male_6mnths", "partners_6mnths", "partners_msw_6mnth", "partners_tsw_6mnths" ,"numregpart","partners_regular_6mnths", "casual_partners_6mnths", "numcasualpart_12mnth", "np_partners_wk" , "np_part_mnth", "np_partners_3mnth", "np_part_12mnths", "partners_npp_6mnths", "np_clients_6mnths" , "no_swpartners_yr" , "newclients_mnth", "male_partners_regular_currently", "male_partners_currently", "male_partners_mnth", "male_partners_lastmnth", "male_partners_6mnths", "male_partners_3mnths", "male_partners_12mnths" , "male_partners", "male_partners_lastwk", "female_partners_lastwk" ,"female_partners_12mnth", "female_clients_6mnths", "female_partners_6mnths", "partners_femalenpp_6mnths", "clients_yr", "clients_yesterday", "clients_mnth", "clients_lastwk", "clients_lastmnth", "clients_6mnths", "clients_3mnths", "allpartners_6mnths" , "allpartners_yr", "regclients_wk", "newclients_wk", "clients_trans_6mnths")
 
 
 # Programme variables
-"programme_access", "anc_attended", "sw_program", "msm_program", "peer_educator", "hiv_activities"
+programvars <- c("programme_access", "anc_attended", "sw_program", "msm_program", "peer_educator", "hiv_activities")
 
 # Cdm use
-"cdm_lastpart", "cdm_lastnpp2", "cdm_lastnpp1", "cdm_lastclient3", "cdm_lastclient2", "cdm_lastclient1", "cdm_last_paid", "cdm_last_gifter", "cdm_last_main", "cdm_last_gift", "cdm_last_gifter", "cdm_last_funded", "cdm_last_female", "cdm_last_casual", "cdm_last_3events_nppp" , "cdm_last_anal", "cdm_last_3events_client", "cdm_last_reg_client", "cdm_last_new_client", "cdm_last_npp", "cdm_last_reg", "cdm_last_tsw" , "cdm_last_msw", "cdm_last_transclient", "cdm_last_femalenpp", "cdm_last_regclient"
+cdmvars <- c("cdm_lastpart", "cdm_lastnpp2", "cdm_lastnpp1", "cdm_lastclient3", "cdm_lastclient2", "cdm_lastclient1", "cdm_last_paid", "cdm_last_gifter", "cdm_last_main", "cdm_last_gift", "cdm_last_gifter", "cdm_last_funded", "cdm_last_female", "cdm_last_casual", "cdm_last_3events_nppp" , "cdm_last_anal", "cdm_last_3events_client", "cdm_last_reg_client", "cdm_last_new_client", "cdm_last_npp", "cdm_last_reg", "cdm_last_tsw" , "cdm_last_msw", "cdm_last_transclient", "cdm_last_femalenpp", "cdm_last_regclient")
 
 # We don't generally have cdm use at last ins/rec - we have cdm_often_insertive / cdm_often_receptive for two surveys presently
 # Abuse
-"verbal_abuse", "verbal_abuser", "sexual_abuse", "sexual_abuser", "rape", "prison_ever", "prison_12mnths", "arrested_msm", "minor_physical_abuse", "minor_phsyical_abuser" , "major_physical_abuser", "major_physical_abuse", "fgm", "abuse_client_6mnth", "beaten_client", "beaten_client_count_mth", "insulted_client", "rape_client_6mnth", "raped_ever", "raped_age", "raped_yr", "raped_police_yr", "rape_police_often", "rape_police_ever","rape_npp", "raped_firstsex", "raped_becausemsm", "beaten_npp_mnth","beaten_npp_ever" , "beaten_npp_count_mnth" , "police_threaten_sw", "police_abuse" , "healthc_stigma_fear", "hc_avoid", "hc_refused_msm", "stigmafear_sticentre", "stigmafear_healthcare"
+stigmavars <- c("verbal_abuse", "verbal_abuser", "sexual_abuse", "sexual_abuser", "rape", "prison_ever", "prison_12mnths", "arrested_msm", "minor_physical_abuse", "minor_phsyical_abuser" , "major_physical_abuser", "major_physical_abuse", "fgm", "abuse_client_6mnth", "beaten_client", "beaten_client_count_mth", "insulted_client", "rape_client_6mnth", "raped_ever", "raped_age", "raped_yr", "raped_police_yr", "rape_police_often", "rape_police_ever","rape_npp", "raped_firstsex", "raped_becausemsm", "beaten_npp_mnth","beaten_npp_ever" , "beaten_npp_count_mnth" , "police_threaten_sw", "police_abuse" , "healthc_stigma_fear", "hc_avoid", "hc_refused_msm", "stigmafear_sticentre", "stigmafear_healthcare")
 
 # Alcohol 
-"alcohol_wk_count"
+alcoholvars <- c("alcohol_wk_count", "alcohol_often_mnth", "alcohol")
 
 # HIV services
-"prep_ever", "prep_6mnths", "pep_ever", "pep_6mnths", "onart", "hivtest_whenlast", "hivtest_whenlastcat", "hivtest_whenlastcat2", "hivtest_12mnths", "sti_treat", "kp_hivcare"
+hivvars <- c("prep_ever", "prep_6mnths", "pep_ever", "pep_6mnths", "onart", "hivtest_whenlast", "hivtest_whenlastcat", "hivtest_whenlastcat2", "hivtest_12mnths", "sti_treat", "kp_hivcare")
 
 # Biomarkers
-"syphilis", "hiv", "hepb", "hepc", "gon", "chlam"
+biomarkvars <- c("syphilis", "hiv", "hepb", "hepc", "gon", "chlam", "vl_result_suppressed", "vl_result_detectable", "vl_result_cat", "vl_result_count")
 
 # Ins rec
-"insertive_wk", "insertive_unpr_6mnths", "insertive_lastpart_6mnth", "insertive_6mnth", "ins_rec_pref", "insertive_12mnth", "ins_rec", "insertive_mnth", "receptive_mnth", "ins_rec_reg", "ins_rec_casual", "ins_rec_client", "ins_rec_main", "ins_rec_npp", "ins_rec_tgw", "ins_rec_tsw", "ins_rec_transclient"
+insrecvars <- c("insertive_wk", "insertive_unpr_6mnths", "insertive_lastpart_6mnth", "insertive_6mnth", "ins_rec_pref", "insertive_12mnth", "ins_rec", "insertive_mnth", "receptive_mnth", "ins_rec_reg", "ins_rec_casual", "ins_rec_client", "ins_rec_main", "ins_rec_npp", "ins_rec_tgw", "ins_rec_tsw", "ins_rec_transclient")
 
 # ins_rec_casual + ins_rec_client + ins_rec_reg -_> all last time you had sex
+
+#########
 variable_recode <- recoding_sheet %>% 
   select(survey_id, variable, var_raw, study_type) %>% 
   mutate(survey_id2 = survey_id) %>% 
   separate(survey_id2, c(NA, "file_type")) %>% 
   distinct() %>%
   mutate(analysis = "kp") %>% 
-  filter(variable %in% c("survey_city", "network_size", "coupon1", "coupon2", "coupon3", "coupon4", "coupon5", "coupon6", "coupon7", "coupon8", "own_coupon", "age", "hiv")) 
+  filter(variable %in% c(demvars, drugvars, alcoholvars, biomarkvars, hivvars, identityvars, insrecvars, msmvars, partnervars, programvars, swvars, stigmavars))
+  # filter(variable %in% c("survey_city", "network_size", "coupon1", "coupon2", "coupon3", "coupon4", "coupon5", "coupon6", "coupon7", "coupon8", "own_coupon", "age", "hiv")) 
 
 value_recode <- recoding_sheet %>% 
   rename(value = val_recode) %>% 
@@ -159,9 +162,10 @@ surv_ids <- str_remove(surv_ids, ".rds")
 names(combined_datasets) <- surv_ids
 
 
-all_extracted <- combined_datasets[!names(combined_datasets) %in% c("BEN2013BBS_MSM", "COG2017BBS_MSM", "GIN2022BBS_MSM"  , "MWI2020BBS_TG", "SLE2021BBS_TGW", ## These surveys have duplicated column errors and other issues, "LSO2019BBS_FSW"
-                                                                    "NGA2020BBS_TG" #This survey isn't in the recode sheet
-                                                                    )] %>%
+all_extracted <- combined_datasets %>% 
+  # combined_datasets[!names(combined_datasets) %in% c("BEN2013BBS_MSM", "COG2017BBS_MSM", "GIN2022BBS_MSM"  , "MWI2020BBS_TG", "SLE2021BBS_TGW", ## These surveys have duplicated column errors and other issues, "LSO2019BBS_FSW"
+                                                                    # "NGA2020BBS_TG" #This survey isn't in the recode sheet
+                                                                    # )] %>%
   Map(new_extract_fun,
       df = .,
       survey_id = names(.),
@@ -177,12 +181,15 @@ all_extracted <- combined_datasets[!names(combined_datasets) %in% c("BEN2013BBS_
 #Two copies of UGA 2021 BBS FSW??
 all_extracted <- compact(all_extracted)
 
-all_recoded <- all_extracted[!names(all_extracted) %in% c("MWI2006BBS_FSW", "GIN2022BBS_FSW")]  %>% #[!names(all_extracted) %in% c("BEN2008ACA_FSW", "COD2019BBS_MSM", "MWI2006BBS_FSW", "GHA2015BBS_FSW")] 
+all_recoded <- all_extracted[!names(all_extracted) %in% c("BEN2008ACA_FSW")] %>% 
+# [!names(all_extracted) %in% c("MWI2006BBS_FSW", "GIN2022BBS_FSW")]  %>% #[!names(all_extracted) %in% c("BEN2008ACA_FSW", "COD2019BBS_MSM", "MWI2006BBS_FSW", "GHA2015BBS_FSW")] 
   Map(new_recode_survey_variables,
       df = .,
       survey_id = names(.),
       list(value_recode))
 
+debugonce(new_recode_survey_variables)
+new_recode_survey_variables(all_recoded$BEN2008ACA_FSW, "BEN2008ACA_FSW", value_recode)
 ## Fix please :)
 all_recoded$GIN2022BBS_FSW$age_fs_paid[all_recoded$GIN2022BBS_FSW$age_fs_paid == "Pas de réponse"] <- NA
 all_recoded$ZWE2022ACA_PWID$age_inject[all_recoded$ZWE2022ACA_PWID$age_inject == "don't know"] <- NA
@@ -193,6 +200,13 @@ newlyclean <- all_recoded %>%
       df = .,
       survey_id_c = names(.))
 
+newlyclean$BDI2021BBS_FSW$pregnant[newlyclean$BDI2021BBS_FSW$pregnant == "Pas de réponse"] <- NA
+newlyclean$BDI2021BBS_FSW$anc_attended[newlyclean$BDI2021BBS_FSW$anc_attended == "Pas de réponse"] <- NA
+newlyclean$BDI2021BBS_FSW$marital[newlyclean$BDI2021BBS_FSW$marital == "Séparée/Divorcé"] <- 3
+newlyclean$MOZ2021BBS_FSW$paid_sex_6mnth[newlyclean$MOZ2021BBS_FSW$paid_sex_6mnth == "Nao"] <- 0
+newlyclean$MOZ2021BBS_FSW$paid_sex_6mnth[newlyclean$MOZ2021BBS_FSW$paid_sex_6mnth == "n/a"] <- NA
+newlyclean$TZA2022BBS_FSW$vl_result_suppressed[newlyclean$TZA2022BBS_FSW$vl_result_suppressed == "unsuppressed"] <- 0
+newlyclean$ZWE2022ACA_PWID$onart[newlyclean$ZWE2022ACA_PWID$onart == "I’m on and off ARV treatment"] <- 0
 
 newlyclean <- lapply(newlyclean, function(df) {
   df %>%
@@ -205,12 +219,22 @@ newlyclean <- lapply(newlyclean, function(df) {
            across(starts_with("age"), ~as.integer(extract_numeric(.))),
            across(starts_with("inject"), ~as.integer(extract_numeric(.))),
            across(starts_with("primary"), ~as.integer(extract_numeric(.))),
-           across(starts_with("cdm"), ~as.integer(extract_numeric(.)))) 
+           across(starts_with("cdm"), ~as.integer(extract_numeric(.))),
+           across(starts_with("religion"), ~as.integer(extract_numeric(.))),
+           across(starts_with("marital"), ~as.integer(extract_numeric(.))),
+           across(starts_with("anc"), ~as.integer(extract_numeric(.))),
+           across(starts_with("education"), ~as.integer(extract_numeric(.))),
+           across(starts_with("paid"), ~as.integer(extract_numeric(.))),
+           across(starts_with("pregnant"), ~as.integer(extract_numeric(.))),
+           across(starts_with("on"), ~as.integer(extract_numeric(.))),
+           across(starts_with("vl"), ~as.integer(extract_numeric(.))))
 })
   # %>%
     # select(own_coupon = if ("own_coupon" %in% names(.))
     #   as.integer(extract_numeric(own_coupon)),
 
+
+# all_recoded$BDI2021BBS_FSW$education
 
 newlyclean <- newlyclean %>% 
   bind_rows()
