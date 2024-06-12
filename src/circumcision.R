@@ -196,6 +196,7 @@ names(mics_file_type) <- names(mics_dat)
 
 # relevant filetype (e.g. mr, phia, mn) for each survey
 file_type <- c(
+  c(
     "Individual Recode" = "ir", 
     "Men's Recode" = "mr"
   )[combined_datasets$FileType] %>% 

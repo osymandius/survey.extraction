@@ -82,7 +82,10 @@ extract_survey_vars <- function(
   
   message(survey_id_c)
 
-  surv_type <- substr(survey_id_c, 8, stringr::str_length(survey_id_c))
+  if(str_detect(survey_id_c, "FSW|PWID|MSM|TGW|TG"))
+    surv_type <- "KP"
+  else
+    surv_type <- substr(survey_id_c, 8, stringr::str_length(survey_id_c))
 
   ## If individual ID is to be used as primary key - this needs editing
   if (surv_type %in% c("DHS", "AIS", "MIS")) {
@@ -114,6 +117,14 @@ extract_survey_vars <- function(
     id_vars <- recode_mics_id_vars(variable_recode, survey_id_c, dataset_type)
     stopifnot(length(id_vars) > 0)
     colnames(df) <- tolower(colnames(df))
+  } else if(surv_type == "KP"){
+    
+    if(!survey_id_c %in% variable_recode$survey_id) {
+      stop(survey_id_c, ": No KP survey found in recode sheet")
+    }
+    
+    id_vars <- c("survey_id", "unique_id")
+    
   } else {
     stop("Survey type not recognised")
   }
@@ -123,43 +134,58 @@ extract_survey_vars <- function(
   custom_recode <- filter(
     variable_recode, survey_id == survey_id_c, dataset == dataset_type
   )
-
-  # Finds the default variable names for specified survey and dataset types
-  default_recode <- filter(
-    variable_recode,
-    dataset == dataset_type,
-    survey_id == paste0("_default_", tolower(surv_type)),
-    !variable %in% c("cluster_id", "household", "line")
-  )
-
-  variable_df <- variable_recode %>%
-    filter(
-      analysis == analysis_c,
-      stringr::str_detect(survey_id, "_default")
-    ) %>%
-    distinct(variable) %>%
-    left_join(custom_recode, by = "variable")
-
-  # Combine custom and default variable name dfs
-  # Use defaults in the absence of custom vars
-  variable_df <- variable_df %>%
-    filter(!is.na(var_raw)) %>%
-    bind_rows(
-      (variable_df %>%
-        filter(is.na(var_raw)) %>%
-        select(variable) %>%
-        left_join(default_recode, by = "variable"))
-    ) %>%
-    filter(!is.na(var_raw))
-
+  
+  if(dataset_type == "kp") {
+    
+    df <- df %>% 
+      ungroup() %>% 
+      mutate(survey_id = survey_id_c, 
+             unique_id = row_number())
+    
+    variable_df <- custom_recode
+    
+  } else {
+    
+    # Finds the default variable names for specified survey and dataset types
+    default_recode <- filter(
+      variable_recode,
+      dataset == dataset_type,
+      survey_id == paste0("_default_", tolower(surv_type)),
+      !variable %in% c("cluster_id", "household", "line")
+    )
+    
+    variable_df <- variable_recode %>%
+      filter(
+        analysis == analysis_c,
+        stringr::str_detect(survey_id, "_default")
+      ) %>%
+      distinct(variable) %>%
+      left_join(custom_recode, by = "variable")
+    
+    # Combine custom and default variable name dfs
+    # Use defaults in the absence of custom vars
+    variable_df <- variable_df %>%
+      filter(!is.na(var_raw)) %>%
+      bind_rows(
+        (variable_df %>%
+           filter(is.na(var_raw)) %>%
+           select(variable) %>%
+           left_join(default_recode, by = "variable"))
+      ) %>%
+      filter(!is.na(var_raw))
+  
+    
+  }
+  
   opt_var <- variable_df %>% 
-    filter() %>% 
     pull(var_raw) %>% 
     setNames(
       variable_df %>% 
         filter() %>% 
         pull(variable)
     )
+
+
 
   # Mandatory variables are cluster_id, household, line number 
   # (to be replaced with individual ID). Any "analysis variables" are optional.
@@ -242,24 +268,38 @@ recode_survey_variables <- function(
   
   message(survey_id_c)
 
-  surv_type <- substr(survey_id_c, 8, stringr::str_length(survey_id_c))
-  if (surv_type == "AIS") surv_type <- "DHS"
+  if(str_detect(survey_id_c, "FSW|PWID|MSM|TGW|TG")) {
+    surv_type <- "KP"
+  } else {
+    surv_type <- substr(survey_id_c, 8, stringr::str_length(survey_id_c))
+  }
   
-  recode_columns <- value_recode %>% 
-    filter(
-      survey_id == paste0("_default_", tolower(surv_type)),
-      dataset   == dataset_type,
-      analysis  == analysis_c
-    ) %>% 
-    distinct(variable) %>% 
-    pull() %>% 
-    as.character()
+  if (surv_type =="AIS")
+    surv_type <- "DHS"
+  
+  if(dataset_type != "kp")
+    recode_columns <- value_recode %>% 
+      filter(
+        survey_id == paste0("_default_", tolower(surv_type)),
+        dataset   == dataset_type,
+        analysis  == analysis_c
+      ) %>% 
+      distinct(variable) %>% 
+      pull() %>% 
+      as.character()
+  else
+    recode_columns <- c()
   
   survey_specific_columns <- value_recode %>% 
     filter(
       survey_id == survey_id_c,
       dataset   == dataset_type,
-      analysis  == analysis_c
+      !is.na(val_raw), ## Removes any variables that don't need recoding and can be passed through as is
+      if(dataset_type == "kp") {
+        analysis = TRUE
+      } else {
+        analysis == analysis_c
+      }
     ) %>% 
     distinct(variable) %>% 
     pull() 
@@ -267,13 +307,14 @@ recode_survey_variables <- function(
   recode_columns <- unique(c(recode_columns, survey_specific_columns))
 
   df <- df %>%
+    ungroup() %>%
     mutate(
-      across(everything(), as.numeric),
+      # across(everything(), as.numeric), ## This seems like a bad idea for the main code too...
       across(any_of(recode_columns), ~ val_recode(
         .x, cur_column(), survey_id_c, dataset_type, analysis_c
       )),
       survey_id = survey_id_c,
-      individual_id = dhs_individual_id(cluster_id, household, line)
+      individual_id = ifelse(dataset_type == "kp", row_number(), dhs_individual_id(cluster_id, household, line))
     ) %>%
     type.convert(as.is = TRUE) %>%
     select(survey_id, individual_id, everything())

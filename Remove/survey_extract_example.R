@@ -148,7 +148,7 @@ value_recode <- recoding_sheet %>%
 #   unlist()
 
 paths <- list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/KP/Individual level data/", recursive = TRUE, pattern = ".rds", full.names = TRUE) %>%
-  lapply(., grep, pattern = "[A-Z]{3}[0-9]{4}[A-Z]{3,5}\\_(FSW|PWID|MSM|TGW|TG).rds", value= T) %>%
+  lapply(., grep, pattern = "[A-Z]{3}[0-9]{4}[A-Z]{3,5}_(FSW|PWID|MSM|TGW|TG).rds", value= T) %>%
   unlist()
 
 combined_datasets <- lapply(paths, readRDS)
@@ -160,30 +160,39 @@ surv_ids <- str_split(paths, "/") %>%
   lapply(function(x) str_remove(x, ".rds")) %>%
   unlist()
   
-
 names(combined_datasets) <- surv_ids
 
+old <- new_extract_fun(combined_datasets[[5]], survey_id = names(combined_datasets[5]), variable_recode)
 
-all_extracted <- combined_datasets %>% 
-  # combined_datasets[!names(combined_datasets) %in% c("BEN2013BBS_MSM", "COG2017BBS_MSM", "GIN2022BBS_MSM"  , "MWI2020BBS_TG", "SLE2021BBS_TGW", ## These surveys have duplicated column errors and other issues, "LSO2019BBS_FSW"
-                                                                    # "NGA2020BBS_TG" #This survey isn't in the recode sheet
-                                                                    # )] %>%
-  Map(new_extract_fun,
+variable_recode <- readxl::read_excel("data/hivdata_survey_datasets.xlsx", sheet = "variable_recode", col_types = "text") %>%
+  filter(!is.na(var_raw), ## @Rebecca: AGO2018PLACE_FSW has NA for a var_raw entry.. There may be others too
+         is.na(notes) ## Check this col in the sheet please!
+         ) 
+
+debugonce(extract_survey_vars)
+new <- extract_survey_vars(combined_datasets[[1]], survey_id = names(combined_datasets[1]), variable_recode, dataset_type = "kp", analysis_c = NA)
+
+all_extracted <- 
+  # combined_datasets %>% 
+  combined_datasets[!names(combined_datasets) %in% c("MLI2017ACA_FSW" # This survey isn't in the recode sheet
+  )] %>%
+  Map(extract_survey_vars,
       df = .,
       survey_id = names(.),
-      list(variable_recode)
+      list(variable_recode),
+      dataset_type = "kp",
+      analysis_c = NA
       )
 
-# debugonce(new_extract_fun)
-# new_extract_fun(all_extracted$BDI2017ACA_PWID, "BDI2017ACA_PWID", variable_recode)
+duplicated <- names(all_extracted)[duplicated(names(all_extracted))]
 
-#all_extracted[["BEN2005BBS_FSW"]]
+if(length(duplicated))
+  stop(paste0(names(all_extracted)[duplicated(names(all_extracted))], " duplicated"))
 
-#all_extracted <- all_extracted[!names(all_extracted) %in% c( "CIV2020BBS_MSM", "GHA2011BBS_FSW", "GHA2015BBS_FSW", "GHA2019BBS_FSW", "UGA2021BBS_MSM", "ZAF2014BBS_FSW" , "ZAF2017BBS_MSM", "ZAF2013BBS_MSM")] #"BEN2012ACA_FSW",
-#Two copies of UGA 2021 BBS FSW??
-all_extracted <- compact(all_extracted)
+all_extracted <- all_extracted[!names(all_extracted) %in% duplicated]
 
-all_recoded <- all_extracted[!names(all_extracted) %in% c("BEN2008ACA_FSW")] %>% 
+
+all_recoded <- all_extracted %>% 
 # [!names(all_extracted) %in% c("MWI2006BBS_FSW", "GIN2022BBS_FSW")]  %>% #[!names(all_extracted) %in% c("BEN2008ACA_FSW", "COD2019BBS_MSM", "MWI2006BBS_FSW", "GHA2015BBS_FSW")] 
   Map(new_recode_survey_variables,
       df = .,
