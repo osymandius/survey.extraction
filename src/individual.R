@@ -1,26 +1,51 @@
-library(tidyverse)
+## Survey Individuals Extraction ##
+
+#### Load Packages ####
+
+library(dplyr)
+library(stringr)
+library(purrr)
+library(haven)
 library(rdhs)
 
-source("extract_funs.R")
+source("src/extract_funs.R")
 
-variable_recode = readxl::read_excel("~/Dropbox/oli backup/Survey extraction/hivdata_survey_datasets.xlsx", sheet = "variable_recode", na = "NA")
-value_recode = readxl::read_excel("~/Dropbox/oli backup/Survey extraction/hivdata_survey_datasets.xlsx", sheet = "value_recode", na = "NA") %>% type.convert()
+#### Set Metadata ####
+
+ssa_iso3 <- sort(c(
+  "BDI", "BEN", "BFA", "CAF", "CIV", "CMR", "COD", "COG", "GMB", "KEN", "LSO",
+  "MLI", "MOZ", "MWI", "NGA", "SLE", "SWZ", "TCD", "TGO", "ZWE", "AGO", "ETH",
+  "GAB", "GHA", "GIN", "LBR", "NAM", "NER", "RWA", "SEN", "TZA", "UGA", "ZMB"
+))
 
 
-sharepoint <- spud::sharepoint$new(Sys.getenv("SHAREPOINT_URL"))
-folder <- sharepoint$folder(site = Sys.getenv("SHAREPOINT_SITE"), path = Sys.getenv("MICS_ORDERLY_PATH"))
+#### Load Recoding Datasets ####
 
-mics_sharepoint_df <- folder$list() %>%
-  dplyr::filter(str_detect(name, paste0(tolower(ssa_iso), collapse = "|")))
+# recoding excel sheet
+variable_recode = readxl::read_excel(
+  "data/hivdata_survey_datasets.xlsx", sheet = "variable_recode", na = "NA"
+)
+value_recode = type.convert(readxl::read_excel(
+  "data/hivdata_survey_datasets.xlsx", sheet = "value_recode", na = "NA"
+), as.is = TRUE)
 
-mics_paths <- file.path("sites", Sys.getenv("SHAREPOINT_SITE"), Sys.getenv("MICS_ORDERLY_PATH"), mics_sharepoint_df$name)
-mics_files <- lapply(mics_paths, spud::sharepoint_download, sharepoint_url = Sys.getenv("SHAREPOINT_URL"))
+#### Load MICS Data ####
 
-mics_dat <- lapply(mics_files, readRDS) %>%
-  setNames(toupper(str_sub(mics_sharepoint_df$name, 0, 11))) %>%
-  lapply("[", c("mn", "wm")) %>%
-  lapply(compact) %>%
-  compact
+# load mics data 
+mics_dat <- load_sharepoint_data(
+  path = Sys.getenv("MICS_ORDERLY_PATH"), 
+  pattern = paste0(tolower(ssa_iso3), collapse = "|"),
+  load_fun = readRDS
+)
+# change names from e.g. ner2000mics.rds to NER2000MICS
+names(mics_dat) <- toupper(stringr::str_sub(names(mics_dat), 0, 11))
+
+mics_dat <- purrr::compact(
+  lapply(
+    lapply(mics_dat, "[", c("mn", "wm")),
+    purrr::compact
+  )
+)
 
 # mics_mr <- mics_dat %>%
 #   lapply("[", "mn") %>%
@@ -28,32 +53,35 @@ mics_dat <- lapply(mics_files, readRDS) %>%
 #   setNames(str_sub(names(.), 0, -4)) %>%
 #   compact
 
-mics_wm <- mics_dat %>%
-  lapply("[", "wm") %>%
-  unlist(recursive = FALSE) %>%
-  setNames(str_sub(names(.), 0, -4)) %>%
-  compact
+# pull  data for women
+mics_wm <- unlist(lapply(mics_dat, "[", "wm"), recursive = FALSE)
+names(mics_wm) <- stringr::str_sub(names(mics_wm), 0, -4)
+mics_wm <- compact(mics_wm)
 
 # mics_raw <- c(mics_wm, mics_mr)
 mics_raw <- c(mics_wm)
 
+
+#### Extract and Recode Data ####
+
 # file_type <- c(rep("wm", length(mics_wm)), rep("mn", length(mics_mr)))
 file_type <- c(rep("wm", length(mics_wm)))
 
-mics_extracted <- mics_raw %>%
-  Map(extract_survey_vars,
-      df = .,
-      survey_id = names(.),
-      list(variable_recode),
-      # file_type[names(.)],
-      file_type,
-      analysis = "individual")
+mics_extracted <- Map(
+  extract_survey_vars,
+  df = mics_raw,
+  survey_id = names(mics_raw),
+  list(variable_recode),
+  # file_type[names(.)],
+  file_type,
+  analysis = "individual"
+)
 
-mics_recoded <- mics_extracted  %>%
-  Map(recode_survey_variables,
-      df = .,
-      survey_id = names(.),
-      list(value_recode),
-      file_type,
-      analysis = "individual"
-  )
+mics_recoded <- Map(
+  recode_survey_variables,
+  df = mics_extracted,
+  survey_id = names(mics_extracted),
+  list(value_recode),
+  file_type,
+  analysis = "individual"
+)
