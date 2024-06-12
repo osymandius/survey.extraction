@@ -64,7 +64,7 @@ ssa_iso3 <- moz.utils::ssa_iso3()
 # paths <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", recursive = TRUE, pattern = ".rds", full.names = TRUE) %>%
 
 
-recoding_sheet <-  read_csv("data/recoding_sheet.csv", locale = locale(encoding = "ISO-8859-1"))
+recoding_sheet <-  read_csv("data/recoding_sheet.csv", locale = locale(encoding = "ISO-8859-1"), show_col_types = F)
 
 #######################
 ## Age and duration variables
@@ -131,11 +131,11 @@ insrecvars <- c("insertive_wk", "insertive_unpr_6mnths", "insertive_lastpart_6mn
 #########
 variable_recode <- recoding_sheet %>% 
   select(survey_id, variable, var_raw, study_type) %>% 
-  mutate(survey_id2 = survey_id) %>% 
-  separate(survey_id2, c(NA, "file_type")) %>% 
-  distinct() %>%
-  mutate(analysis = "kp") %>% 
-  filter(variable %in% c(demvars, drugvars, alcoholvars, biomarkvars, hivvars, identityvars, insrecvars, msmvars, partnervars, programvars, swvars, stigmavars))
+  # mutate(survey_id2 = survey_id) %>% 
+  # separate(survey_id2, c(NA, "file_type")) %>% ## What is this doing without a sep = position argument?
+  distinct()
+  # mutate(analysis = "kp") 
+  # filter(variable %in% c(demvars, drugvars, alcoholvars, biomarkvars, hivvars, identityvars, insrecvars, msmvars, partnervars, programvars, swvars, stigmavars))
   # filter(variable %in% c("survey_city", "network_size", "coupon1", "coupon2", "coupon3", "coupon4", "coupon5", "coupon6", "coupon7", "coupon8", "own_coupon", "age", "hiv")) 
 
 value_recode <- recoding_sheet %>% 
@@ -147,17 +147,19 @@ value_recode <- recoding_sheet %>%
 #   lapply(., grep, pattern = "[A-Z]{3}[0-9]{4}[A-Z]{3,5}\\_(FSW|PWID|MSM|TGW|TG).rds", value= T) %>%
 #   unlist()
 
-paths <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/KP/Individual level data/", recursive = TRUE, pattern = ".rds", full.names = TRUE) %>%
+paths <- list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/KP/Individual level data/", recursive = TRUE, pattern = ".rds", full.names = TRUE) %>%
   lapply(., grep, pattern = "[A-Z]{3}[0-9]{4}[A-Z]{3,5}\\_(FSW|PWID|MSM|TGW|TG).rds", value= T) %>%
   unlist()
 
 combined_datasets <- lapply(paths, readRDS)
 
+# combined_datasets <- list(readRDS(paths[5]))
+
 surv_ids <- str_split(paths, "/") %>%
   lapply(tail, 1) %>%
-  unlist() 
-
-surv_ids <- str_remove(surv_ids, ".rds")
+  lapply(function(x) str_remove(x, ".rds")) %>%
+  unlist()
+  
 
 names(combined_datasets) <- surv_ids
 
