@@ -92,10 +92,10 @@ demvars <- c("age", "sex", "gender", "tg","education", "marital", "children", "a
 identityvars <- c("sex_samegender_mnth", "sex_lastpartner", "sex_2ndlastpartner",  "sex_3rdlastpartner", "sex_5thlastpartner" , "sex_4thlastpartner", "partners_currentsex", "msm_only", "msm_andwomen")
 
 # SW variables
-swvars <- c("workplace_street", "workplace", "swabroad" , "sw_locations", "swabroad_6mnths" , "swothercity_6mnths",  "transac", "primary_income_sw", "paidorgiftsex_man_lastmnth", "paidorgiftsex_man_3mnth", "paidorgiftsex_man_6mnth", "paidorgifted_by_man", "paidbywoman_6mnths", "paidbywoman_12mnths" , "paid_transac_sex_6mnths", "paid_sex_ever", "paid_sex_man_12mnths", "paid_sex_12mnths" , "paid_sex_6mnth", "giftsfromwoman", "drugs_for_sex", "drugs_for_sex_12mnth",  "age_startsw" , "age_startsw_cat", "paidby_lastpartnerman", "paidbyman_mnth_count","paidbyman_wk_count") 
+swvars <- c("workplace_street", "workplace", "swabroad" , "sw_locations", "swabroad_6mnths" , "swothercity_6mnths",  "transac", "primary_income_sw", "paidorgiftsex_man_lastmnth", "paidorgiftsex_man_3mnth", "paidorgiftsex_man_6mnth", "paidorgifted_by_man", "paidbywoman_6mnths", "paidbywoman_12mnths" , "paid_transac_sex_6mnths", "paid_sex_ever", "paid_sex_man_12mnths", "paid_sex_12mnths" , "paid_sex_6mnth", "giftsfromwoman", "drugs_for_sex", "drugs_for_sex_12mnth",  "age_startsw" , "age_startsw_cat", "paidby_lastpartnerman", "paidbyman_mnth_count","paidbyman_wk_count", "paidbyman_6mnth_count", "paidbyman_3mnth_count") 
 
 # MSM variables
-msmvars <- c("sexabroad", "circ_status", "spouse_gender")
+msmvars <- c("sexabroad", "circ_status", "spouse_gender", "msm_6mnth")
 
 # Drug variables
 drugvars <- c("share_needleyr" , "share_needle6mnth" , "share_needle", "share_needle_norm", "share_needle_last", "share_needle_first_inj", "share_needle_hormones", "inject_yr", "inject_6mnths", "inject_ever", "inject_freq", "inject_dur", "noninject_lastmnth", "drug_lastmnth","noninject_6mnths","inject_hormones_yr", "share_needle_hormones_yr")
