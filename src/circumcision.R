@@ -63,7 +63,9 @@ survey_has_circ <- rdhs::dhs_surveys(
 # Men's recode datasets
 mrd <- rdhs::dhs_datasets(fileType = "MR", fileFormat = "FL")
 
+
 # Get Individual recode datasets w/ circ characteristic and bind in MR datasets
+
 combined_datasets <- dhs_datasets(fileType = "IR", fileFormat = "FL") %>%
   filter(SurveyId %in% dhs_surveys(surveyCharacteristicId = 11)$SurveyId) %>%
   filter(!SurveyId %in% mrd$SurveyId) %>%
@@ -82,7 +84,6 @@ combined_datasets <- dhs_datasets(fileType = "IR", fileFormat = "FL") %>%
   # Jeff: Variables for both medical and traditional
   filter(!survey_id %in% c("LSO2014DHS"))
 
-combined_datasets %>% filter(CountryName == "Mozambique")
 
 # Jeff: Required to get around rdhs cache bug - as you will have different 
 # surveys, highly likely that you will encounter surveys that are not in the 
@@ -100,6 +101,7 @@ combined_datasets %>% filter(CountryName == "Mozambique")
 #
 # combined_datasets <- combined_datasets %>%
 #   filter(FileName %in% dl)
+
 
 circ_raw <- get_datasets(combined_datasets, clear_cache = TRUE) %>%
   setNames(combined_datasets$survey_id) %>%
@@ -194,7 +196,6 @@ names(mics_file_type) <- names(mics_dat)
 
 # relevant filetype (e.g. mr, phia, mn) for each survey
 file_type <- c(
-  c(
     "Individual Recode" = "ir", 
     "Men's Recode" = "mr"
   )[combined_datasets$FileType] %>% 
@@ -213,6 +214,7 @@ circ_extracted <- Map(
 )
 
 #' Note on the value_recode tab of the excel file
+
 #' There are several cases where though the variable name is custom to the 
 #' survey, the value coding is the same as the default.
 #' The value recode entries for those surveys can be removed, but for speed I 
@@ -242,6 +244,7 @@ circ_recoded_save <- purrr::compact(lapply(circ_recoded, function(x) {
 }))
 
 # mr_surveys <- names(circ_recoded_save)[names(circ_recoded_save) %in% names(file_type[file_type == "mr"])]
+
 # no_circ_id <- mr_surveys[!mr_surveys %in% survey_has_circ$survey_id]
 #
 # dhs_cc <- no_circ_id %>%
@@ -257,7 +260,6 @@ circ_recoded_save <- purrr::compact(lapply(circ_recoded, function(x) {
 upload_sharepoint_data(
   circ_recoded_save, filename = "circ_recoded.rds", save_path = save_path
 )
-
 
 # int <- circ_recoded %>%
 #   bind_rows()
@@ -275,10 +277,12 @@ upload_sharepoint_data(
 #   as.data.frame() %>%
 #   tibble::rownames_to_column(.)  %>%
 #   View()
-#
+
+# 
 # debugonce(extract_survey_vars)
 # foo <- extract_survey_vars(circ_raw$SEN2005DHS, "SEN2005DHS", variable_recode, "mr", "circ")
-#
+# 
+
 # debugonce(recode_survey_variables)
 # foo2 <- recode_survey_variables(circ_extracted$TZA2012AIS, "TZA2012AIS", value_recode, "mr", "circ")
 #
