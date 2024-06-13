@@ -259,7 +259,7 @@ val_recode <- function(col, col_name, survey_id_c, dataset_type, analysis_c) {
   vec <- value_recode$value
   names(vec) <- value_recode$val_raw
 
-  recode(col, !!!vec)
+  recode(col, !!!vec, .default = NA_integer_)
 }
 
 recode_survey_variables <- function(

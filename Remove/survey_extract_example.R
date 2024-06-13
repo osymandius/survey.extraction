@@ -14,57 +14,15 @@ setwd("C:/Users/rla121/OneDrive - Imperial College London/Documents/GitHub/surve
 source("src/kp_recoding_functions_21_02.R")
 ssa_iso3 <- moz.utils::ssa_iso3()
 
+## @Rebecca - can you check what this is doing with accents and if the same locale argument can be applied to .xlsx?
+variable_recode <- readxl::read_excel("data/hivdata_survey_datasets.xlsx", sheet = "variable_recode", col_types = "text") %>%
+  filter(!is.na(var_raw), ## @Rebecca: AGO2018PLACE_FSW has NA for a var_raw entry.. There may be others too
+         is.na(notes) ## Check this col in the sheet please!
+  )
 
-### Recoding vars / values
-      ## Analysis and file_type redundant for the time being
-# recoding_sheet <-  read_csv("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/00Admin/recoding_sheet.csv")
+value_recode <- readxl::read_excel("data/hivdata_survey_datasets.xlsx", sheet = "value_recode", col_types = "text")
 
-## Sample survey for trialing functions
-
-# path2 <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = "MWI2019BBS_FSW.rds", full.names = TRUE, recursive = TRUE)
-# #path2 <- list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = "BEN2002BBS_FSW.rds", full.names = TRUE, recursive = TRUE)
-# 
-# mwidat <- lapply(path2, readRDS)
-# ## Trying new_extract_fun
-# debugonce(new_extract_fun)
-# wow <-  new_extract_fun(mwidat[[1]], "MWI2019BBS_FSW", variable_recode)
-# 
-# ## Trying for PLACE 
-# placepath <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = "AGO2018PLACE_TGW.rds", full.names = TRUE, recursive = TRUE)
-# #placepath <- list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = "AGO2018PLACE_TGW.rds", full.names = TRUE, recursive = TRUE)
-# placedat <- lapply(placepath, readRDS)
-# place_recode <- new_extract_fun(placedat[[1]], "AGO2018PLACE_TGW", variable_recode)
-# 
-# ## Trying new_val_recode
-# #wow2 <- wow %>%
-#  # mutate(cdm_last_paid = as.numeric(cdm_last_paid),
-#   #       cdm_last_paid = new_val_recode(cdm_last_paid, "cdm_last_paid", "BEN2002BBS_FSW"))
-# ## Trying new_recode_survey_variables
-# wow3 <- new_recode_survey_variables(wow, "MWI2019BBS_FSW", value_recode)
-# placevals <- new_recode_survey_variables(place_recode, "AGO2018PLACE_TGW", value_recode)
-# 
-# ### Trying RDS -> this is not working --> going wrong with new_recode_survey_variables - it's not dealing with strings very well. 
-# swzpath <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = "SWZ2020BBS_FSW.rds", full.names = TRUE, recursive = TRUE)
-# #swzpath <- list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = "SWZ2020BBS_FSW.rds", full.names = TRUE, recursive = TRUE)
-# 
-# swzdat <- lapply(swzpath, readRDS)
-# swzwow <- new_extract_fun(swzdat[[1]], "SWZ2020BBS_FSW", variable_recode)
-# # debugonce(new_recode_survey_variables)
-# swzwow2 <- new_recode_survey_variables(swzwow, "SWZ2020BBS_FSW", value_recode)
-# debugonce(rds_adjust2)
-# rds_trial <- rds_adjust2(wow3, "MWI2019BBS_FSW")
-# 
-# #### Surveys to be recoded
-
-#age_fs <- age_cleaning(all_extracted[[29]], "NAM2019BBS_FSW")
-#paths <- intersect(list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = paste(survey_id, collapse = "|")  , full.names = TRUE, recursive = TRUE), list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = ".rds"  , full.names = TRUE, recursive = TRUE))
-
-#paths <- intersect(list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = paste(unique(variable_recode$survey_id), collapse = "|")  , full.names = TRUE, recursive = TRUE), list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", pattern = ".rds"  , full.names = TRUE, recursive = TRUE))
-
-# paths <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/Individual KP/", recursive = TRUE, pattern = ".rds", full.names = TRUE) %>%
-
-
-recoding_sheet <-  read_csv("data/recoding_sheet.csv", locale = locale(encoding = "ISO-8859-1"), show_col_types = F)
+# recoding_sheet <-  read_csv("data/recoding_sheet.csv", locale = locale(encoding = "ISO-8859-1"), show_col_types = F)
 
 #######################
 ## Age and duration variables
@@ -129,23 +87,7 @@ insrecvars <- c("insertive_wk", "insertive_unpr_6mnths", "insertive_lastpart_6mn
 # ins_rec_casual + ins_rec_client + ins_rec_reg -_> all last time you had sex
 
 #########
-variable_recode <- recoding_sheet %>% 
-  select(survey_id, variable, var_raw, study_type) %>% 
-  # mutate(survey_id2 = survey_id) %>% 
-  # separate(survey_id2, c(NA, "file_type")) %>% ## What is this doing without a sep = position argument?
-  distinct()
-  # mutate(analysis = "kp") 
-  # filter(variable %in% c(demvars, drugvars, alcoholvars, biomarkvars, hivvars, identityvars, insrecvars, msmvars, partnervars, programvars, swvars, stigmavars))
-  # filter(variable %in% c("survey_city", "network_size", "coupon1", "coupon2", "coupon3", "coupon4", "coupon5", "coupon6", "coupon7", "coupon8", "own_coupon", "age", "hiv")) 
-
-value_recode <- recoding_sheet %>% 
-  rename(value = val_recode) %>% 
-  filter(!is.na(val_raw)) 
   
-
-# paths <- list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/KP/Individual level data/", recursive = TRUE, pattern = ".rds", full.names = TRUE) %>%
-#   lapply(., grep, pattern = "[A-Z]{3}[0-9]{4}[A-Z]{3,5}\\_(FSW|PWID|MSM|TGW|TG).rds", value= T) %>%
-#   unlist()
 
 paths <- list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/KP/Individual level data/", recursive = TRUE, pattern = ".rds", full.names = TRUE) %>%
   lapply(., grep, pattern = "[A-Z]{3}[0-9]{4}[A-Z]{3,5}_(FSW|PWID|MSM|TGW|TG).rds", value= T) %>%
@@ -161,16 +103,6 @@ surv_ids <- str_split(paths, "/") %>%
   unlist()
   
 names(combined_datasets) <- surv_ids
-
-old <- new_extract_fun(combined_datasets[[5]], survey_id = names(combined_datasets[5]), variable_recode)
-
-variable_recode <- readxl::read_excel("data/hivdata_survey_datasets.xlsx", sheet = "variable_recode", col_types = "text") %>%
-  filter(!is.na(var_raw), ## @Rebecca: AGO2018PLACE_FSW has NA for a var_raw entry.. There may be others too
-         is.na(notes) ## Check this col in the sheet please!
-         ) 
-
-debugonce(extract_survey_vars)
-new <- extract_survey_vars(combined_datasets[[1]], survey_id = names(combined_datasets[1]), variable_recode, dataset_type = "kp", analysis_c = NA)
 
 all_extracted <- 
   # combined_datasets %>% 
@@ -191,13 +123,21 @@ if(length(duplicated))
 
 all_extracted <- all_extracted[!names(all_extracted) %in% duplicated]
 
-
 all_recoded <- all_extracted %>% 
-# [!names(all_extracted) %in% c("MWI2006BBS_FSW", "GIN2022BBS_FSW")]  %>% #[!names(all_extracted) %in% c("BEN2008ACA_FSW", "COD2019BBS_MSM", "MWI2006BBS_FSW", "GHA2015BBS_FSW")] 
-  Map(new_recode_survey_variables,
+  lapply(haven::zap_labels) %>%
+  Map(recode_survey_variables,
       df = .,
       survey_id = names(.),
-      list(value_recode))
+      list(value_recode),
+      dataset_type = "kp",
+      analysis = NA)
+
+debugonce(recode_survey_variables)
+foo <- recode_survey_variables(haven::zap_labels(all_extracted$GIN2022BBS_FSW), "GIN2022BBS_FSW", value_recode, dataset_type = "kp",
+                        analysis = NA)
+
+debugonce(val_recode)
+val_recode(df$age_inject, "age_inject", survey_id_c, "kp", NA)
 
 debugonce(new_recode_survey_variables)
 new_recode_survey_variables(all_recoded$BEN2008ACA_FSW, "BEN2008ACA_FSW", value_recode)
