@@ -206,15 +206,19 @@ extract_survey_vars <- function(
 
 val_recode <- function(col, col_name, survey_id_c, dataset_type, analysis_c) {
   
-  value_recode <- filter(value_recode, variable == col_name)
+  value_recode <- filter(value_recode, variable == col_name, survey_id == survey_id_c)
 
   # All values in the value book come one excel col which includes strings
   # => NAs are read as _NA_character which adversely effects later recoding
   
   # If, for a given variable, the values are only 0-9 and NA, force to be numeric.
-  if (!length(value_recode$value[!value_recode$value %in% c(0:9, NA)])) {
-    value_recode$value <- as.numeric(value_recode$value)
-  }
+  # if (!length(grep("[^0-9]", value_recode$value))) {
+  #   value_recode$value <- as.numeric(value_recode$value)
+  # }
+  # 
+  # if (!length(grep("[^0-9]", value_recode$val_raw))) {
+  #   value_recode$val_raw <- as.numeric(value_recode$val_raw)
+  # }
 
   surv_type <- substr(survey_id_c, 8, stringr::str_length(survey_id_c))
 
@@ -259,7 +263,7 @@ val_recode <- function(col, col_name, survey_id_c, dataset_type, analysis_c) {
   vec <- value_recode$value
   names(vec) <- value_recode$val_raw
 
-  recode(col, !!!vec, .default = NA_integer_)
+  recode(col, !!!vec)
 }
 
 recode_survey_variables <- function(
@@ -308,6 +312,7 @@ recode_survey_variables <- function(
 
   df <- df %>%
     ungroup() %>%
+    # type.convert(as.is = T) %>%
     mutate(
       # across(everything(), as.numeric), ## This seems like a bad idea for the main code too...
       across(any_of(recode_columns), ~ val_recode(

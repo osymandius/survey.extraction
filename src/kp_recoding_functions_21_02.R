@@ -3,8 +3,7 @@ new_extract_fun <- function(df, survey_id_c, variable_recode) {
   message(survey_id_c)
   
   if(!survey_id_c %in% variable_recode$survey_id) {
-    warning(survey_id_c, ": No survey found in recode sheet")
-    return(NULL)
+    stop(survey_id_c, ": No survey found in recode sheet")
   }
   
   
@@ -124,22 +123,43 @@ new_recode_survey_variables <- function(df, survey_id_c, value_recode) {
     
 }
 
+all_recoded$BDI2021BBS_FSW
 
-# Cleaning data! 
+remove_implausible_values <- function(df) {
+  
+}
+
+## Cannot be aged above 80
+## Cannot have started risk behaviour under 10 or over 80
+age_risk_10to80 <- function(df, cols) {
+  df %>%
+    mutate(across(any_of(cols), ~ifelse(.x %in% 10:80, .x, NA)))
+}
+
+## Risk duration can't be more than 10 fewer than age (a 40 year old cannot have a risk duration longer than 30)
+duration_10to80 <- function(df, cols) {
+  if("age" %in% colnames(df))
+    df %>%
+      mutate(across(any_of(cols), ~ifelse(.x > age - 10, NA, .x)))
+  else
+    df
+}
+
+# Cleaning data!
 cleaning_fun2 <- function(df, survey_id_c){
-  
+
   message(survey_id_c)
-  
-  
+
+
   if ("age" %in% colnames(df)){
-    df <- df %>% 
+    df <- df %>%
       mutate(age = ifelse(age <80, age, 999),
              age_changed = ifelse(age == 999, 1, 0),
-             age = ifelse(age == 999, NA_integer_, age)) %>% 
+             age = ifelse(age == 999, NA_integer_, age)) %>%
       type.convert(as.is = T)
-    
+
     if ("duration_yr" %in% colnames(df)){
-      df <- df %>% 
+      df <- df %>%
         mutate(duration_yr = ifelse(duration_yr < 80, duration_yr, 999),
                duration_yr = ifelse(duration_yr > age - 10, 999, duration_yr),
                duration_yr_changed = ifelse(duration_yr == 999, 1, 0),
@@ -149,9 +169,9 @@ cleaning_fun2 <- function(df, survey_id_c){
     else{
       df <- df
     }
-    
+
     if ("age_fs_paid" %in% colnames(df)){
-      df <- df %>% 
+      df <- df %>%
         mutate(age_fs_paid = ifelse(age_fs_paid < 80, age_fs_paid, 999),
                age_fs_paid = ifelse(age_fs_paid < 10, 999, age_fs_paid),
                age_fs_paid_changed = ifelse(age_fs_paid == 999, 1, 0),
@@ -161,9 +181,9 @@ cleaning_fun2 <- function(df, survey_id_c){
     else{
       df <- df
     }
-    
+
     if ("age_fs_paidorgift" %in% colnames(df)){
-      df <- df %>% 
+      df <- df %>%
         mutate(age_fs_paidorgift = ifelse(age_fs_paidorgift < 80, age_fs_paidorgift, 999),
                age_fs_paidorgift = ifelse(age_fs_paidorgift < 10, 999, age_fs_paidorgift),
                age_fs_paidorgift_changed = ifelse(age_fs_paidorgift == 999, 1, 0),
@@ -173,9 +193,9 @@ cleaning_fun2 <- function(df, survey_id_c){
     else{
       df <- df
     }
-    
+
     if ("age_fs_paidfor" %in% colnames(df)){
-      df <- df %>% 
+      df <- df %>%
         mutate(age_fs_paidfor = ifelse(age_fs_paidfor < 80, age_fs_paidfor, 999),
                age_fs_paidfor = ifelse(age_fs_paidfor < 10, 999, age_fs_paidfor),
                age_fs_paidfor_changed = ifelse(age_fs_paidfor == 999, 1, 0),
@@ -185,10 +205,10 @@ cleaning_fun2 <- function(df, survey_id_c){
     else{
       df <- df
     }
-    
-    
+
+
     if ("age_startsw" %in% colnames(df)){
-      df <- df %>% 
+      df <- df %>%
         mutate(age_startsw = ifelse(age_startsw < 80, age_startsw, 999),
                age_startsw = ifelse(age_startsw < 10, 999, age_startsw),
                age_startsw_changed = ifelse(age_startsw == 999, 1, 0),
@@ -198,10 +218,10 @@ cleaning_fun2 <- function(df, survey_id_c){
     else{
       df <- df
     }
-    
-    
+
+
     if ("age_fs_man" %in% colnames(df)){
-      df <- df %>% 
+      df <- df %>%
         mutate(age_fs_man = ifelse(age_fs_man < 80, age_fs_man, 999),
                age_fs_man = ifelse(age_fs_man < 10, 999, age_fs_man),
                age_fs_man_changed = ifelse(age_fs_man == 999, 1, 0),
@@ -210,10 +230,10 @@ cleaning_fun2 <- function(df, survey_id_c){
     } else{
       df <- df
     }
-    
-    
+
+
     if ("age_fs_man_anal" %in% colnames(df)){
-      df <- df %>% 
+      df <- df %>%
         mutate(age_fs_man_anal = ifelse(age_fs_man_anal < 80, age_fs_man_anal, 999),
                age_fs_man_anal = ifelse(age_fs_man_anal < 10, 999, age_fs_man_anal),
                age_fs_man_anal_changed = ifelse(age_fs_man_anal == 999, 1, 0),
@@ -222,9 +242,9 @@ cleaning_fun2 <- function(df, survey_id_c){
     } else{
       df <- df
     }
-    
+
     if ("age_inject" %in% colnames(df)){
-      df <- df %>% 
+      df <- df %>%
         mutate(age_inject = ifelse(age_inject < 80, age_inject, 999),
                age_inject = ifelse(age_inject < 10, 999, age_inject),
                age_inject_changed = ifelse(age_inject == 999, 1, 0),
@@ -233,9 +253,9 @@ cleaning_fun2 <- function(df, survey_id_c){
     } else{
       df <- df
     }
-    
+
     if ("inject_yr" %in% colnames(df)){
-      df <- df %>% 
+      df <- df %>%
         mutate(inject_yr = ifelse(inject_yr < 80, inject_yr, 999),
                inject_yr = ifelse(inject_yr > age - 10, 999, inject_yr),
                inject_yr_changed = ifelse(inject_yr == 999, 1, 0),
@@ -245,13 +265,81 @@ cleaning_fun2 <- function(df, survey_id_c){
     else{
       df <- df
     }
-    
+
   } else {
     df <- df
   }
-  
-  
+
+
 }
+
+rds_adjust_new <- function(df, outcome_var, grouping_vars) {
+  
+  grouping_vars <- "age_group"
+  outcome_var <- "hiv"
+  
+  message(unique(df$survey_id))
+  
+  stopifnot("network_size" %in% colnames(df))
+  
+  ## Let's check with CDC what they do for this problem.    
+  median_network_size <- median(df$network_size[df$network_size != 0], na.rm = T)
+  df$network_size[is.na(df$network_size) | df$network_size == 0] <- median_network_size
+      
+  nboot <- 30
+
+      
+      # vars <- intersect(c("hiv", "age_fs", "age1","hepb", "syphilis", "age_first_paid"), colnames(df))
+      # vars <- "age1"
+      # vars <- "duration1"
+      coupons <- colnames(df)[grep("^coupon", colnames(df))]
+      
+      num_coupons <- length(coupons)
+      
+      df$recruiter.id <- rid.from.coupons(df, subject.id='unique_id', 
+                                          subject.coupon='own_coupon', 
+                                          # coupon.variables=c("coupon1","coupon2","coupon3"),
+                                          coupon.variables = coupons)
+      
+      df <- as.rds.data.frame(df, id='unique_id', 
+                              recruiter.id='recruiter.id',
+                              network.size='network_size',
+                              population.size=c(NA,NA,NA), 
+                              # max.coupons=3, 
+                              max.coupons = num_coupons,
+                              notes=NULL)
+      
+      df$seed <- get.seed.id(df)
+      df$wave <- get.wave(df)
+      
+      grouped_list <- df %>%
+        group_by(across(all_of(grouping_vars))) %>%
+        group_split()
+      
+      rds_df <- lapply(grouped_list, function(x) {
+        
+        class(x) <- 'rds.data.frame'
+        
+        freq <- RDS.bootstrap.intervals(x, outcome.variable=outcome_var,
+                                        weight.type="RDS-II", uncertainty="Salganik", 
+                                        confidence.level=0.95, 
+                                        number.of.bootstrap.samples=nboot)
+        
+        cat <- length(freq$estimate)
+        
+        df <- data.frame(matrix(freq$interval, nrow = cat))
+        colnames(df) <- c("estimate", "lower", "upper", "des_effect", "se", "n")
+        
+        df$category <- attr(freq$estimate, "names")
+        
+        df$var <- x
+        
+        df
+      }) %>%
+        bind_rows() %>% 
+        mutate(survey_id = survey_id_c)
+    
+  }
 
 
 
