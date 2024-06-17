@@ -400,40 +400,6 @@ trial <- rds_adjust_age(all_recoded$ZMB2017BBS_FSW, "ZMB2017BBS_FSW", variable_r
 clean$CAF2019BBS_MSM %>%
   single_year_to_five_year(fifteen_to_49 = F)
 
-single_year_to_five_year <- function (df, fifteen_to_49 = TRUE, warning = T) 
-{
-  
-  message(unique(df$survey_id))
-  
-  if("age_group" %in% colnames(df)) {
-    warning(paste0(unique(df$survey_id), ": Age group already exists"))
-    return(df)
-  }
-  
-  if(!"age" %in% colnames(df)) {
-    if(warning == T) {
-      warning(paste0(unique(df$survey_id), ": No age column"))
-      return(df)
-    } else {
-      stop(paste0(unique(df$survey_id), ": No age column")) 
-    }
-  }
-  
-  df <- df %>% 
-    dplyr::mutate(age_group_label = cut(age, c(0, seq(5, 85, 5) - 1), c(paste0(seq(0, 79, 5), "-", seq(5, 80, 5) - 1), "80+"), include.lowest = TRUE)) %>%
-    dplyr::left_join(naomi::get_age_groups() %>% 
-                       select(age_group, age_group_label),
-                     by = "age_group_label") %>% 
-    dplyr::select(-age_group_label)
-  
-  if (fifteen_to_49) {
-    df %>% dplyr::filter(age %in% 15:49) %>% dplyr::select(-age)
-  }
-  else {
-    df %>% dplyr::select(-age)
-  }
-}
-
 
 
 data <- all_recoded$ZMB2017BBS_FSW %>% 
