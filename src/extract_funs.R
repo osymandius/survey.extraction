@@ -325,150 +325,6 @@ recode_survey_variables <- function(
     select(survey_id, individual_id, everything())
 }
 
-#### Load data from specific dir on Sharepoint ####
-load_sharepoint_data <- function(
-  path, 
-  pattern  = NULL, 
-  url      = Sys.getenv("SHAREPOINT_URL"),
-  site     = Sys.getenv("SHAREPOINT_SITE")
-) {
-  
-  # create connection to Sharepoint
-  sharepoint <- spud::sharepoint$new(url)
-  
-  # List files in Sharepoint folder 
-  folder <- sharepoint$folder(site = site, path = URLencode(path))
-  
-  # pull urls for each file
-  urls <- URLencode(file.path("sites", site, path, folder$files()$name))
-  
-  # may only require certain files 
-  if (!is.null(pattern)) urls <- urls[grepl(pattern, urls)]
-  
-  # download files, name with urls so we know order of temp files
-  files = lapply(urls, sharepoint$download)
-  if (length(files) == 0) stop("No files found at supplied path")
-  names(files) <- basename(urls)
-  
-  # if desired, can specify function to load files with (e.g. readRDS)
-  if (!is.null(load_fun)) files <- lapply(files, load_fun)
-  
-  return(files)
-}
-
-#### Load nested PHIA datasets from Sharepoint ####
-load_phia_nested_sharepoint_data <- function(
-    path, 
-    url  = Sys.getenv("SHAREPOINT_URL"),
-    site = Sys.getenv("SHAREPOINT_SITE")
-) {
-  
-  # create temp file to download data to
-  tmp <- tempdir()
-  
-  # create connection to Sharepoint folder
-  sharepoint <- spud::sharepoint$new(url)
-  
-  # List cntry/datasets folders in PHIA Sharepoint folder 
-  phia_folder <- sharepoint$folder(
-    site = site, 
-    path = URLencode(path)
-  )
-  cntry_folders <- phia_folder$folders()$name 
-  folders_list <- lapply(cntry_folders, function(x) {
-    sharepoint$folder(
-      site = site, 
-      path = URLencode(file.path(path, x, "/datasets"))
-    )
-  })
-  
-  # pull urls from each folder for each file
-  urls <- unlist(lapply(seq_along(folders_list), function(i) {
-    URLencode(file.path(
-      "sites", 
-      site, 
-      # path, 
-      path,   
-      cntry_folders[[i]], 
-      "datasets/",
-      folders_list[[i]]$files()$name
-    ))
-  }))
-  
-  # filter URL
-  urls <- urls[
-    grepl("Interview", urls) & 
-      grepl("CSV).zip", urls) & 
-      !grepl("Child", urls)
-  ]
-  
-  # download files, name with urls so we know order of temp files
-  message("downloading...")
-  files = lapply(urls, sharepoint$download)
-  if (length(files) == 0) stop("No files found at supplied path")
-  
-  # unzip files
-  message("unzipping...")
-  lapply(files, function(x) {
-    message(x)
-    unzip(x, exdir = tmp)
-  })
-  
-  phia_files <- list.files(tmp, full.names = TRUE)
-  phia_path <- grep("adultind", phia_files, value = TRUE) 
-  # Only finding 11 PHIA paths from 12. CAMPHIA is in a nested folder
-  phia_path <- c(
-    phia_path, 
-    file.path(
-      tmp, 
-      "203 CAMPHIA 2017-2018 Adult Interview Dataset (CSV)/camphia2017adultind.csv"
-    )
-  )
-  
-  message("reading files ...")
-  phia_dat <- lapply(phia_path, function(x) {
-    dat <- readr::read_csv(x, show_col_types = FALSE)
-    dat %>%
-      mutate(
-        across(everything(), stringr::str_trim),
-        across(
-          everything(), 
-          stringr::str_replace_all, 
-          pattern = "\\.", 
-          replacement = NA_character_
-        )
-      ) %>%
-      type.convert(as.is = TRUE)
-  })
-  
-  message("done!")
-  return(phia_dat)
-}
-
-#### Upload data to Sharepoint ####
-
-upload_sharepoint_data <- function(
-    .data,
-    filename, 
-    save_path,
-    url      = Sys.getenv("SHAREPOINT_URL"),
-    site     = Sys.getenv("SHAREPOINT_SITE"),
-    save_fun = saveRDS
-) {
-  
-  # save data locally using specified function
-  save_fun(.data, file = filename)
-  
-  sharepoint <- spud::sharepoint$new(url)
-  folder <- sharepoint$folder(site, save_path, verify = TRUE)
-  # folder$upload(path = "circ_recoded.rds", dest = "circ_recoded_test.rds")
-  message("uploading...")
-  folder$upload(path = filename, dest = filename)
-  
-  # remove local file
-  system(paste0("rm ", filename))
-}
-
 #### check if PHIA survey names are assigned correctly ####
 check_phia_names <- function(.data) {
   stopifnot(
@@ -485,4 +341,39 @@ check_phia_names <- function(.data) {
         substr(names(.data), 0, 3)
     )
   )
+}
+
+
+single_year_to_five_year <- function (df, fifteen_to_49 = TRUE, warning = T) 
+{
+  
+  message(unique(df$survey_id))
+  
+  if("age_group" %in% colnames(df)) {
+    warning(paste0(unique(df$survey_id), ": Age group already exists"))
+    return(df)
+  }
+  
+  if(!"age" %in% colnames(df)) {
+    if(warning == T) {
+      warning(paste0(unique(df$survey_id), ": No age column"))
+      return(df)
+    } else {
+      stop(paste0(unique(df$survey_id), ": No age column")) 
+    }
+  }
+  
+  df <- df %>% 
+    dplyr::mutate(age_group_label = cut(age, c(0, seq(5, 85, 5) - 1), c(paste0(seq(0, 79, 5), "-", seq(5, 80, 5) - 1), "80+"), include.lowest = TRUE)) %>%
+    dplyr::left_join(naomi::get_age_groups() %>% 
+                       select(age_group, age_group_label),
+                     by = "age_group_label") %>% 
+    dplyr::select(-age_group_label)
+  
+  if (fifteen_to_49) {
+    df %>% dplyr::filter(age %in% 15:49) %>% dplyr::select(-age)
+  }
+  else {
+    df %>% dplyr::select(-age)
+  }
 }

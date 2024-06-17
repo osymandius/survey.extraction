@@ -320,9 +320,11 @@ rds_adjust_new <- function(df, outcome_var, grouping_vars) {
         
         class(x) <- 'rds.data.frame'
         
-        freq <- RDS.bootstrap.intervals(x, outcome.variable=outcome_var,
+        debugonce(RDS.bootstrap.intervals)
+        freq <- RDS.bootstrap.intervals(df, outcome.variable="hiv",
                                         weight.type="RDS-II", uncertainty="Salganik", 
                                         confidence.level=0.95, 
+                                        # subset = "age_group",
                                         number.of.bootstrap.samples=nboot)
         
         cat <- length(freq$estimate)
