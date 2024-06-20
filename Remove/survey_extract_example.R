@@ -1,12 +1,10 @@
 library(RDS)
 library(tidyverse)
 library(rdhs)
-# library(INLA)
 library(sf)
 library(spdep)
 library(countrycode)
 library(stringdist)
-# library(splines)
 library(multi.utils)
 library(moz.utils)
 
@@ -18,11 +16,29 @@ ssa_iso3 <- moz.utils::ssa_iso3()
 
 ## KEEP FOR RECORDS: HOW TO WRITE CSV WITH ENCODING 
 # write.table(combined_variable, "~/Downloads/comb_var.csv", sep = ",", row.names = FALSE, col.names = TRUE, fileEncoding = "ISO-8859-1", na = "")
+recoding_sheet <-  read_csv("data/recoding_sheet.csv", locale = locale(encoding = "ISO-8859-1"))
+value_recode2 <- recoding_sheet %>% 
+  rename(value = val_recode) %>% 
+  filter(!is.na(val_raw)) %>% 
+  mutate(dataset = "kp",
+         analysis = "")
 
-value_recode <- read_csv("data/value_recode.csv", locale = locale(encoding = "ISO-8859-1"), show_col_types = F)
+variable_recode2 <- recoding_sheet %>% 
+  select(survey_id, variable, var_raw, study_type) %>% 
+  mutate(survey_id2 = survey_id) %>% 
+  separate(survey_id2, c(NA, "file_type")) %>% 
+  distinct() %>%
+  mutate(dataset = "kp",
+         analysis = "") 
 
-variable_recode <- read_csv("data/variable_recode.csv", locale = locale(encoding = "ISO-8859-1"), show_col_types = F, guess_max = 7000) %>%
-  filter(is.na(notes)) ## Please check this column - I used to to filter out multiple rows using the same target column name. This breaks the code. I assume these are surveys that use multiple variables as multiple choice answers to a single question, which is *really really annoying* compared to just using a single variable with e.g. 1-5 as answers. If that is the case, let's come up with a way to deal with this as a pre-processing step... 
+value_recode <- read_csv("data/value_recode.csv", locale = locale(encoding = "ISO-8859-1"), show_col_types = F) %>% filter(!dataset == "kp") %>% bind_rows(value_recode2)
+
+variable_recode <- read_csv("data/variable_recode.csv", locale = locale(encoding = "ISO-8859-1"), show_col_types = F, guess_max = 7000) %>% filter(!dataset == "kp") %>% bind_rows(variable_recode2)
+# %>%
+#   filter(is.na(notes)) 
+## Please check this column - I used to to filter out multiple rows using the same target column name. This breaks the code. I assume these are surveys that use multiple variables as multiple choice answers to a single question, which is *really really annoying* compared to just using a single variable with e.g. 1-5 as answers. If that is the case, let's come up with a way to deal with this as a pre-processing step... 
+### NB Don't do this - notes are there even for some variables we are using. Where there are duplicate name issues flag and will go back and fix in the recoding sheet. 
+
 
 #######################
 
@@ -61,7 +77,7 @@ demvars <- c("age", "sex", "gender", "tg","education", "marital", "children", "a
 identityvars <- c("sex_samegender_mnth", "sex_lastpartner", "sex_2ndlastpartner",  "sex_3rdlastpartner", "sex_5thlastpartner" , "sex_4thlastpartner", "partners_currentsex", "msm_only", "msm_andwomen")
 
 # SW variables
-swvars <- c("workplace_street", "workplace", "swabroad" , "sw_locations", "swabroad_6mnths" , "swothercity_6mnths",  "transac", "primary_income_sw", "paidorgiftsex_man_lastmnth", "paidorgiftsex_man_3mnth", "paidorgiftsex_man_6mnth", "paidorgifted_by_man", "paidbywoman_6mnths", "paidbywoman_12mnths" , "paid_transac_sex_6mnths", "paid_sex_ever", "paid_sex_man_12mnths", "paid_sex_12mnths" , "paid_sex_6mnth", "giftsfromwoman", "drugs_for_sex", "drugs_for_sex_12mnth",  "age_startsw" , "age_startsw_cat", "paidby_lastpartnerman", "paidbyman_mnth_count","paidbyman_wk_count", "paidbyman_6mnth_count", "paidbyman_3mnth_count") 
+swvars <- c("workplace_street", "workplace", "swabroad" , "sw_locations", "swabroad_6mnths" , "swothercity_6mnths",  "transac", "primary_income_sw", "paidorgiftsex_man_lastmnth", "paidorgiftsex_man_3mnth", "paidorgiftsex_man_6mnth", "paidorgifted_by_man", "paidbywoman_6mnths", "paidbywoman_12mnths" , "paid_transac_sex_6mnths", "paid_sex_ever", "paid_sex_man_12mnths", "paid_sex_12mnths" , "paid_sex_6mnth", "giftsfromwoman", "drugs_for_sex", "drugs_for_sex_12mnth",  "age_startsw" , "age_startsw_cat", "paidby_lastpartnerman", "paidbyman_mnth_count","paidbyman_wk_count", "paidbyman_6mnth_count", "paidbyman_3mnth_count", "age_fs_paid", "age_fs_paidorgift") 
 
 # MSM variables
 msmvars <- c("sexabroad", "circ_status", "spouse_gender", "msm_6mnth")
@@ -104,8 +120,11 @@ insrecvars <- c("insertive_wk", "insertive_unpr_6mnths", "insertive_lastpart_6mn
 
 #' Should replace this with `load_sharepoint_data()` in extract_funs.R at some point
 
+# paths <- list.files("C:/Users/rla121/Imperial College London/HIV Inference Group - WP - Documents/Data/KP/Individual level data/", recursive = TRUE, pattern = ".rds", full.names = TRUE) %>%
+#   lapply(., grep, pattern = "[A-Z]{3}[0-9]{4}[A-Z]{3,5}_(FSW|PWID|MSM|TGW|TG|CFSW).rds", value= T) %>% ## This is the regex that was wrong. I was trying to escape the underscore between the survey ID and the KP name, with \\_ but that was returning many too few surveys. This seems to work - can you check it's capturing everything we have recorded as received/recoded in KP Ethics?
+#   unlist()
 paths <- list.files("~/Imperial College London/HIV Inference Group - WP - Documents/Data/KP/Individual level data/", recursive = TRUE, pattern = ".rds", full.names = TRUE) %>%
-  lapply(., grep, pattern = "[A-Z]{3}[0-9]{4}[A-Z]{3,5}_(FSW|PWID|MSM|TGW|TG).rds", value= T) %>% ## This is the regex that was wrong. I was trying to escape the underscore between the survey ID and the KP name, with \\_ but that was returning many too few surveys. This seems to work - can you check it's capturing everything we have recorded as received/recoded in KP Ethics?
+  lapply(., grep, pattern = "[A-Z]{3}[0-9]{4}[A-Z]{3,5}_(FSW|PWID|MSM|TGW|TG|CFSW).rds", value= T) %>% ## This is the regex that was wrong. I was trying to escape the underscore between the survey ID and the KP name, with \\_ but that was returning many too few surveys. This seems to work - can you check it's capturing everything we have recorded as received/recoded in KP Ethics?
   unlist()
 
 ## Get rid of PLACE for now
@@ -120,8 +139,7 @@ surv_ids <- str_split(paths, "/") %>%
   
 names(combined_datasets) <- surv_ids
 
-all_extracted <- 
-  combined_datasets[!names(combined_datasets) %in% c("MLI2017ACA_FSW")] %>% # This survey isn't in the recode sheet
+all_extracted <- combined_datasets %>% 
   Map(extract_survey_vars,
       df = .,
       survey_id = names(.),
@@ -129,6 +147,7 @@ all_extracted <-
       dataset_type = "kp",
       analysis_c = NA
       )
+
 
 duplicated <- names(all_extracted)[duplicated(names(all_extracted))]
 
@@ -139,7 +158,7 @@ if(length(duplicated))
 all_extracted <- all_extracted[!names(all_extracted) %in% duplicated]
 
 all_extracted <- all_extracted %>% 
-  lapply(haven::zap_labels) %>%
+  # lapply(haven::zap_labels) %>%
   lapply(function(x) mutate(x, across(everything(), ~str_replace_all(.x, "’", "'"))))
   
 all_recoded <- all_extracted %>%
@@ -149,6 +168,10 @@ all_recoded <- all_extracted %>%
       list(value_recode),
       dataset_type = "kp",
       analysis = NA)
+
+all_recoded$MOZ2021BBS_MSM$time_in_city <- extract_numeric(all_recoded$MOZ2021BBS_MSM$time_in_city)
+
+all_recoded$ZMB2021BBS_MSM$vl_result_count <- extract_numeric(all_recoded$ZMB2021BBS_MSM$vl_result_count)
 
 ## Ignore this bit - just debugging various surveys that didn't work
 
@@ -200,7 +223,9 @@ filter(na_test, value == 1)
 
 ##### Cleaning
 
-## Suggest we standardise the variable names for anything that is age of first something - I think we're almost there with age_fs_xxxx but it's not universal.
+## Suggest we standardise the variable names for anything that is age of first something - I think we're almost there with age_fs_xxxx but it's not universal 
+
+# #### age_fs is the age of [whatever variety of] first sex but e.g. age_first_partner will stay as I think. I have been trying to standardise names of stuff across the board e.g. all the hivtest variables - getting there but not there yet.
 age_of_first <- na_test %>% filter(str_starts(name, "age_fs")) %>% distinct(name) %>% pull(name)
 
 
@@ -214,50 +239,6 @@ clean <- all_recoded[!names(all_recoded) == "ZAF2022ACA_PWID"] %>% ## What is go
   lapply(type.convert, as.is = T) %>%
   lapply(single_year_to_five_year, fifteen_to_49 = F) ## I put in five-year age groups as default to all surveys, but this doesn't need to go here. I added a couple of checks so this is no longer identical to the moz.utils version, which isn't ideal. Anyway, it will do for now.
 
-### Can you put all these in the value recoding sheet plse
-all_recoded$GIN2022BBS_FSW$age_fs_paid[all_recoded$GIN2022BBS_FSW$age_fs_paid == "Pas de réponse"] <- NA
-all_recoded$ZWE2022ACA_PWID$age_inject[all_recoded$ZWE2022ACA_PWID$age_inject == "don't know"] <- NA
-
-clean$BDI2021BBS_FSW$pregnant[clean$BDI2021BBS_FSW$pregnant == "Pas de réponse"] <- NA
-clean$BDI2021BBS_FSW$anc_attended[clean$BDI2021BBS_FSW$anc_attended == "Pas de réponse"] <- NA
-clean$BDI2021BBS_FSW$marital[clean$BDI2021BBS_FSW$marital == "Séparée/Divorcé"] <- 3
-clean$MOZ2021BBS_FSW$paid_sex_6mnth[clean$MOZ2021BBS_FSW$paid_sex_6mnth == "Nao"] <- 0
-clean$MOZ2021BBS_FSW$paid_sex_6mnth[clean$MOZ2021BBS_FSW$paid_sex_6mnth == "n/a"] <- NA
-clean$TZA2022BBS_FSW$vl_result_suppressed[clean$TZA2022BBS_FSW$vl_result_suppressed == "unsuppressed"] <- 0
-clean$ZWE2022ACA_PWID$onart[clean$ZWE2022ACA_PWID$onart == "I’m on and off ARV treatment"] <- 0
-
-
-#' What's going on here? You want to be very sure that your data are all numeric before doing this, or you will coerce to NA. See:
-#' 
-#' extract_numeric(c(88, "zing", "zing88"))
-#' 
-#' When you've cleaned up the class mismatches in `class_test` above, we can create a master list of what we expect each variable to be. That way we can write tests that will throw an error if e.g. `hiv` comes out as a character rather than as a numeric
-
-
-# newlyclean <- lapply(newlyclean, function(df) {
-#   df %>%
-#     mutate(across(starts_with("coupon"), ~as.integer(extract_numeric(.))),
-#            across(starts_with("own"), ~as.integer(extract_numeric(.))),
-#            across(starts_with("age_fs"), ~as.integer(extract_numeric(.))),
-#            across(starts_with("sex"), ~as.integer(extract_numeric(.))),
-#            across(starts_with("hiv"), ~as.integer(extract_numeric(.))),
-#            across(starts_with("age"), ~as.integer(extract_numeric(.))),
-#            across(starts_with("age"), ~as.integer(extract_numeric(.))),
-#            across(starts_with("inject"), ~as.integer(extract_numeric(.))),
-#            across(starts_with("primary"), ~as.integer(extract_numeric(.))),
-#            across(starts_with("cdm"), ~as.integer(extract_numeric(.))),
-#            across(starts_with("religion"), ~as.integer(extract_numeric(.))),
-#            across(starts_with("marital"), ~as.integer(extract_numeric(.))),
-#            across(starts_with("anc"), ~as.integer(extract_numeric(.))),
-#            across(starts_with("education"), ~as.integer(extract_numeric(.))),
-#            across(starts_with("paid"), ~as.integer(extract_numeric(.))),
-#            across(starts_with("pregnant"), ~as.integer(extract_numeric(.))),
-#            across(starts_with("on"), ~as.integer(extract_numeric(.))),
-#            across(starts_with("vl"), ~as.integer(extract_numeric(.))))
-# })
-   # %>%
-    # select(own_coupon = if ("own_coupon" %in% names(.))
-    #   as.integer(extract_numeric(own_coupon)),
 
 
 #### RDS adjustment
@@ -269,7 +250,7 @@ rds_survs <- variable_recode %>%
 
 rds_data <- clean[names(clean) %in% rds_survs]
 
-rds_survs[!rds_survs %in% names(rds_data)] ## These surveys have coupon1 in the variable recode sheet, but don't have data for them?
+rds_survs[!rds_survs %in% names(rds_data)] ## These surveys have coupon1 in the variable recode sheet, but don't have data for them? 
 
 #' This is as far as I got to.
 #' 
