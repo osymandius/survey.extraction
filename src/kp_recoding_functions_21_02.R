@@ -275,9 +275,9 @@ cleaning_fun2 <- function(df, survey_id_c){
 
 rds_adjust_new <- function(survey, outcome_vars, grouping_vars) {
   
-  outcome_var = "age_fs_paid"
-  grouping_vars = NULL
-  survey <- rds_data$NAM2019BBS_FSW
+  # outcome_var = "age_fs_paid"
+  # grouping_vars = NULL
+  # survey <- rds_data$NAM2019BBS_FSW
   
   out <- lapply(outcome_vars, function(outcome_var) {
     
