@@ -409,7 +409,7 @@ rds_adjust_new <- function(survey, outcome_vars, grouping_vars) {
     
     # debugonce(RDS:::RDS.estimates.local)
     
-    rds <- parallel::mclapply(grouped_list[1], calculate_rds, mc.cores = use_cores) %>%
+    rds <- parallel::mclapply(grouped_list, calculate_rds, mc.cores = use_cores) %>%
       bind_rows() %>%
       mutate(survey_id = unique(survey$survey_id)) %>%
       select(survey_id, variable, all_of(grouping_vars), everything())
