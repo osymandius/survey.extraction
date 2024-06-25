@@ -273,73 +273,133 @@ cleaning_fun2 <- function(df, survey_id_c){
 
 }
 
-rds_adjust_new <- function(df, outcome_var, grouping_vars) {
+rds_adjust_new <- function(survey, outcome_var, grouping_vars) {
   
-  grouping_vars <- "age_group"
-  outcome_var <- "hiv"
+  #     grouping_vars <- "age_group"
+  #     outcome_var <- "hiv"
+  # 
+  # survey <- rds_data$SWZ2020BBS_FSW
   
-  message(unique(df$survey_id))
+  ## For recoding sheet
+  if(unique(survey$survey_id) == "COG2017BBS_MSM") {
+    survey$coupon1[survey$coupon1 == -1] <- NA
+    survey$coupon2[survey$coupon2 == -1] <- NA
+    survey$coupon3[survey$coupon3 == -1] <- NA
+    survey$network_size[survey$network_size == -1] <- NA
+  }
   
-  stopifnot("network_size" %in% colnames(df))
-  
-  ## Let's check with CDC what they do for this problem.    
-  median_network_size <- median(df$network_size[df$network_size != 0], na.rm = T)
-  df$network_size[is.na(df$network_size) | df$network_size == 0] <- median_network_size
-      
-  nboot <- 30
+  #' RDS function threw an error and warned me about this row. 
+  #' Maybe we can write an edited version of the RDS code that just drops these people rather than throwing an error
+  #' We're never going to successfully fix these errors - the raw paper records are long gone
+  if(unique(survey$survey_id) == "UGA2021BBS_MSM") {
+    #' Error in get.seed(rec.id, history = c(history, i)) : 
+    #' Loop found in recruitment tree with id: 619
+    
+    survey <- survey %>%
+      filter(unique_id != 619)
+  }
 
       
-      # vars <- intersect(c("hiv", "age_fs", "age1","hepb", "syphilis", "age_first_paid"), colnames(df))
-      # vars <- "age1"
-      # vars <- "duration1"
-      coupons <- colnames(df)[grep("^coupon", colnames(df))]
+      message(unique(survey$survey_id))
+      
+      stopifnot("network_size" %in% colnames(survey))
+      
+      ## Let's check with CDC what they do for this problem.    
+      median_network_size <- median(survey$network_size[survey$network_size != 0], na.rm = T)
+      survey$network_size[is.na(survey$network_size) | survey$network_size == 0] <- median_network_size
+          
+      nboot <- 30
+
+    
+      coupons <- colnames(survey)[grep("^coupon", colnames(survey))]
       
       num_coupons <- length(coupons)
       
-      df$recruiter.id <- rid.from.coupons(df, subject.id='unique_id', 
-                                          subject.coupon='own_coupon', 
-                                          # coupon.variables=c("coupon1","coupon2","coupon3"),
-                                          coupon.variables = coupons)
-      
-      df <- as.rds.data.frame(df, id='unique_id', 
-                              recruiter.id='recruiter.id',
-                              network.size='network_size',
-                              population.size=c(NA,NA,NA), 
-                              # max.coupons=3, 
-                              max.coupons = num_coupons,
-                              notes=NULL)
-      
-      df$seed <- get.seed.id(df)
-      df$wave <- get.wave(df)
-      
-      grouped_list <- df %>%
+      grouped_list <- survey %>%
+        filter(
+               if_all(all_of(coupons), ~is.na(.x) | .x != own_coupon),
+               if_all(all_of(outcome_var), ~!is.na(.x)),
+               if_all(all_of(grouping_vars), ~!is.na(.x))) %>% 
+        mutate(across(all_of(outcome_var), factor)) %>%
         group_by(across(all_of(grouping_vars))) %>%
         group_split()
       
-      rds_df <- lapply(grouped_list, function(x) {
+      rds <- lapply(grouped_list, function(split_data) {
         
-        class(x) <- 'rds.data.frame'
+        # split_data <- grouped_list[[3]]
+
+        split_data$recruiter.id <- rid.from.coupons(split_data, subject.id='unique_id', 
+                                            subject.coupon='own_coupon', 
+                                            coupon.variables = coupons)
         
-        debugonce(RDS.bootstrap.intervals)
-        freq <- RDS.bootstrap.intervals(df, outcome.variable="hiv",
-                                        weight.type="RDS-II", uncertainty="Salganik", 
-                                        confidence.level=0.95, 
-                                        # subset = "age_group",
-                                        number.of.bootstrap.samples=nboot)
+        split_data <- as.rds.data.frame(split_data, id='unique_id', 
+                                recruiter.id='recruiter.id',
+                                network.size='network_size',
+                                population.size=c(NA,NA,NA), 
+                                # max.coupons=3, 
+                                max.coupons = num_coupons,
+                                notes=NULL)
         
-        cat <- length(freq$estimate)
+        split_data$seed <- get.seed.id(split_data)
+        split_data$wave <- get.wave(split_data)
         
-        df <- data.frame(matrix(freq$interval, nrow = cat))
-        colnames(df) <- c("estimate", "lower", "upper", "des_effect", "se", "n")
+        check <- split_data %>%
+          data.frame() %>%
+          count(pick(grouping_vars), wave)
+
         
-        df$category <- attr(freq$estimate, "names")
+        if(nrow(check) == 1) {
+          
+          rds_data <- split_data %>%
+            data.frame() %>%
+            count(pick(c(grouping_vars, outcome_var))) %>%
+            rename_with(.cols = outcome_var, ~paste0("category")) %>%
+            filter(!is.na(category)) %>%
+            mutate(variable = outcome_var,
+                   estimate = n/sum(n)) 
+          
+        } else {
+          
+          freq <- RDS.bootstrap.intervals(split_data, outcome.variable= outcome_var,
+                                          weight.type="RDS-II", 
+                                          uncertainty="Salganik", 
+                                          confidence.level=0.95, 
+                                          number.of.bootstrap.samples=nboot)
+          
+          if(!is.null(freq)) {
+            
+            cat <- length(freq$estimate)
+            
+            rds_data <- data.frame(matrix(freq$interval, nrow = cat))
+            colnames(rds_data) <- c("estimate", "lower", "upper", "des_effect", "se", "n")
+            
+            rds_data$category <- attr(freq$estimate, "names")
+            
+            rds_data$variable <- outcome_var
+            
+          } else {
+            ## This is required when there is only 1 level of response (e.g all participants are HIV-negative) and RDS.bootstrap.interavls returns NULL
+            rds_data <- split_data %>%
+              data.frame() %>%
+              count(pick(outcome_var)) %>%
+              rename_with(.cols = outcome_var, ~paste0("category")) %>%
+              filter(!is.na(category)) %>%
+              mutate(variable = outcome_var,
+                     estimate = 1) ## 100% of people must be in the only category that exists
+          }
+          
+          rds_data %>%
+            bind_cols(distinct(split_data, pick(grouping_vars)))
+          
+          
+        }
         
-        df$var <- x
         
-        df
       }) %>%
-        bind_rows() %>% 
-        mutate(survey_id = survey_id_c)
+        bind_rows() %>%
+        mutate(survey_id = unique(survey$survey_id)) %>%
+        select(survey_id, variable, all_of(grouping_vars), everything())
+      
     
   }
 

@@ -206,6 +206,15 @@ class_test <- all_recoded %>%
   filter(idx != 1) %>%
   select(-idx)
 
+# all_recoded[[1]] %>%
+#   select(-c(survey_id, individual_id, unique_id)) %>%
+#   lapply(function(x) {
+#     x <- unique(x)
+#     x[!is.na(x)]
+#   })
+# 
+# lapply(all_recoded[[1]], unique)
+
 ## This shows the proportion of NA in each variable, and the absolute difference relative to the mean missingness. This is a bit of a shit to interpret - I'm not sure how best to identify coding errors, but it was just an idea.. 
 na_test <- all_recoded %>%
   lapply(function(x) {
@@ -252,13 +261,37 @@ rds_data <- clean[names(clean) %in% rds_survs]
 
 rds_survs[!rds_survs %in% names(rds_data)] ## These surveys have coupon1 in the variable recode sheet, but don't have data for them? 
 
-#' This is as far as I got to.
-#' 
-#' Next step is to write a generic RDS function that takes as arguments the data, the outcome variable, and the grouping variables of choice. 
-#' I started doing it (see `rds_adjust_new()`) in kp_recoding_functions_21_02.R but stopped when I realised I didn't actually know what we agreed on for how to calculate e.g HIV prevalence by age.
-#' It's fine when calculating e.g. city-specific HIV prevalence for 15-49, cos the RDS networks are different, but don't remember what to do for subsetting a single RDS network by age.
-#' Maybe something to include in our request to Avi...
-#' 
+## These surveys are missing "own_coupon"
+miss_coupon <- rds_data %>%
+  lapply('[[', "own_coupon") %>%
+  keep(~is.null(.x)) %>%
+  names
+
+## These surveys are missing network_size
+miss_ns <- rds_data %>%
+  lapply('[[', "network_size") %>%
+  keep(~is.null(.x)) %>%
+  names
+
+other_remove <- c(
+  "BEN2017BBS_MSM" # Missing coupon1, but has coupon2 and coupon3? 
+)
+
+rds_data <- rds_data[!names(rds_data) %in% miss_coupon]
+rds_data <- rds_data[!names(rds_data) %in% miss_ns]
+rds_data <- rds_data[!names(rds_data) %in% other_remove]
+
+## Remove later - just for testing the function with HIV as an outcome
+rds_data <- rds_data[grep("PSE", names(rds_data), invert = T)]
+rds_data <- rds_data[!names(rds_data) %in% c("CIV2012ACA_MSM", "MWI2019BBS_FSW", "ZAF2017BBS_MSM")]
+
+test <- lapply(rds_data,
+               rds_adjust_new,
+               outcome_var = "hiv", 
+               grouping_vars = "age_group")
+
+debugonce(rds_adjust_new)
+rds_adjust_new(clean$COG2017BBS_MSM, "hiv", "age_group")
 
 ###########################################################
 ###########################################################
