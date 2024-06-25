@@ -281,17 +281,19 @@ rds_data <- rds_data[!names(rds_data) %in% miss_coupon]
 rds_data <- rds_data[!names(rds_data) %in% miss_ns]
 rds_data <- rds_data[!names(rds_data) %in% other_remove]
 
-## Remove later - just for testing the function with HIV as an outcome
-rds_data <- rds_data[grep("PSE", names(rds_data), invert = T)]
-rds_data <- rds_data[!names(rds_data) %in% c("CIV2012ACA_MSM", "MWI2019BBS_FSW", "ZAF2017BBS_MSM")]
-
+## Still suuuuper slow
 test <- lapply(rds_data,
                rds_adjust_new,
-               outcome_var = "hiv", 
-               grouping_vars = "age_group")
+               outcome_vars = c("hiv"),
+               grouping_vars = NULL
+               # grouping_vars = "age_group"
+               )
+
 
 debugonce(rds_adjust_new)
-rds_adjust_new(clean$COG2017BBS_MSM, "hiv", "age_group")
+rds_adjust_new(clean$NAM2019BBS_FSW, outcome_vars = c("age_startsw", "age_fs_paid", "age_fs_paidorgift"), grouping_vars = NULL)
+
+
 
 ###########################################################
 ###########################################################
