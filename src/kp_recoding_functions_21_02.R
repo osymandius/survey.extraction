@@ -350,6 +350,7 @@ rds_adjust_new <- function(survey, outcome_var, grouping_vars) {
         
         if(nrow(check) == 1) {
           
+          ## If only a single wave is available (which make the RDS code crash), pass through unadjusted data
           rds_data <- split_data %>%
             data.frame() %>%
             count(pick(c(grouping_vars, outcome_var))) %>%
