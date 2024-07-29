@@ -52,3 +52,4 @@ rsconnect/
 
 # .xlsx temp files 
 data/.~*
+inst/doc
