@@ -1,0 +1,15 @@
+Package: survey.extraction
+Title: Extract and Recode DHS, MICS, PHIA, KP survey datasets
+Version: 0.0.0.9000
+Authors@R: 
+    person("Oliver", "Stevens", , "o.stevens@imperial.ac.uk" , role = "cre",
+           comment = c(ORCID = "0000-0001-6842-9434"))
+Description: Extract, rename, and recode survey variables to a standardised recode dataset.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.3
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
